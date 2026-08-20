@@ -6,6 +6,7 @@ import {
   checkFigureN,
   checkActionMissing,
   validateFinalPrompt,
+  resolveFigureRoleText,
   PROMPT_MAX_CHARS,
 } from "@/lib/promptEngine";
 
