@@ -123,9 +123,14 @@ export function normalizeArkBaseUrl(raw: string): string {
 
 export async function callArk(params: {
   prompt: string;
+  /** 공인 서명 URL 또는 data:image/...;base64,... 문자열 */
   imageUrls: string[];
   size: string;
   seed?: number | null;
+  /** ARK sequential_image_generation 모드 (기본 disabled — 한 요청당 1장) */
+  sequentialMode?: "auto" | "disabled";
+  /** sequentialMode=auto 일 때 최대 생성 장수 */
+  maxImages?: number;
   /** Kept for backward-compat but ignored — the handler now issues one ARK call per seed to produce real variation. */
   batchCount?: number;
 }): Promise<ArkResult[]> {
@@ -136,6 +141,7 @@ export async function callArk(params: {
     throw new Error("ARK 시크릿이 설정되지 않았습니다.");
   }
 
+  const sequentialMode = params.sequentialMode ?? "disabled";
   const url = `${normalizeArkBaseUrl(ARK_BASE_URL)}/images/generations`;
   const payload: Record<string, unknown> = {
     model: ARK_ENDPOINT_ID,
@@ -144,7 +150,15 @@ export async function callArk(params: {
     size: params.size,
     watermark: false,
     n: 1,
+    // 업로드 소스(V21.7)와 동일하게 순차 생성 동작을 명시한다.
+    sequential_image_generation: sequentialMode,
   };
+  if (sequentialMode === "auto") {
+    payload.sequential_image_generation_options = {
+      max_images: Math.max(1, Math.min(4, params.maxImages ?? 1)),
+    };
+  }
+
   if (params.imageUrls.length > 0) payload.image = params.imageUrls;
   if (params.seed != null) payload.seed = params.seed;
 
