@@ -60,6 +60,15 @@ const BANNED_TOKENS = [
   /\bgore\b/i,
 ];
 
+export function checkBannedTokens(text: string): string | null {
+  const s = String(text ?? '');
+  for (const re of BANNED_TOKENS) {
+    const m = s.match(re);
+    if (m) return m[0];
+  }
+  return null;
+}
+
 export type PromptValidationError =
   | 'PROMPT_EMPTY'
   | 'PROMPT_TOO_SHORT'
