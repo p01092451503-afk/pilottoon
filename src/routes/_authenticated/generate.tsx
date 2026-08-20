@@ -94,7 +94,7 @@ function GeneratePage() {
   const [restoredNote, setRestoredNote] = useState<string | null>(null);
   const [panelId, setPanelId] = useState<string | null>(null);
   const [backEpisodeId, setBackEpisodeId] = useState<string | null>(null);
-  const [lockedSeeds, setLockedSeeds] = useState<Record<number, number>>({});
+  const [userMemo, setUserMemo] = useState("");
   const [compareIds, setCompareIds] = useState<string[]>([]);
   const updatePanelFn = useServerFn(updatePanel);
   const translateFn = useServerFn(translatePrompt);
@@ -221,7 +221,7 @@ function GeneratePage() {
     [tenantId],
   );
 
-  async function handleGenerate(opts?: { keepLocks?: boolean }) {
+  async function handleGenerate() {
     if (rawMode && !effectivePrompt.trim()) {
       toast.error(t("studio.labels.raw_empty", "Enter a prompt to send."));
       return;
@@ -265,7 +265,7 @@ function GeneratePage() {
         batchCount,
         referenceRoles,
         conflictWarnings: rawMode ? [] : built.warnings,
-        userMemo: work.directionMemo || undefined,
+        userMemo: userMemo || undefined,
         panelId: panelId ?? undefined,
       });
       if (res?.status === "error") {
@@ -283,16 +283,6 @@ function GeneratePage() {
     }
   }
 
-
-  function toggleLock(seq: number, seed: number | null) {
-    if (seed == null) return;
-    setLockedSeeds((prev) => {
-      const next = { ...prev };
-      if (next[seq] === seed) delete next[seq];
-      else next[seq] = seed;
-      return next;
-    });
-  }
   function toggleCompare(id: string) {
     setCompareIds((prev) => {
       if (prev.includes(id)) return prev.filter((x) => x !== id);
@@ -447,6 +437,16 @@ function GeneratePage() {
                 maxHeight={400}
                 value={work.directionMemo}
                 onChange={(e) => setWork({ ...work, directionMemo: e.target.value })}
+                className="rounded-xl bg-muted/50 leading-relaxed"
+              />
+            </FieldGroup>
+            <FieldGroup label={t("studio.labels.user_memo")}>
+              <AutoResizeTextarea
+                minHeight={80}
+                maxHeight={320}
+                value={userMemo}
+                onChange={(e) => setUserMemo(e.target.value)}
+                placeholder={t("studio.labels.user_memo_placeholder")}
                 className="rounded-xl bg-muted/50 leading-relaxed"
               />
             </FieldGroup>
@@ -694,33 +694,11 @@ function GeneratePage() {
                   <>
                     <VariationGrid
                       results={gen.row.results}
-                      lockedSeeds={lockedSeeds}
                       compareIds={compareIds}
-                      onToggleLock={toggleLock}
                       onToggleCompare={toggleCompare}
                       onSetAsPanel={panelId ? setAsPanel : null}
                     />
-                    <div className="flex items-center gap-2 pt-1">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleGenerate({ keepLocks: true })}
-                        disabled={gen.running || Object.keys(lockedSeeds).length === 0}
-                        className="flex-1 rounded-lg text-xs font-semibold"
-                      >
-                        <Lock className="mr-1 h-3.5 w-3.5" />
-                        {t("studio.labels.vary_the_rest", { count: Object.keys(lockedSeeds).length })}
-                      </Button>
-                      {Object.keys(lockedSeeds).length > 0 && (
-                        <Button
-                          variant="ghost" size="sm"
-                          onClick={() => setLockedSeeds({})}
-                          className="rounded-lg text-xs text-muted-foreground"
-                        >
-                          {t("studio.labels.clear_locks")}
-                        </Button>
-                      )}
-                    </div>
+
 
                     {compareIds.length === 2 && (
                       <CompareView
@@ -1247,12 +1225,10 @@ function iconForCamera(sheet: string, id: string, cls = "h-7 w-7") {
 /* ---------- S4: Variation grid + compare + set-as-panel ---------- */
 
 function VariationGrid({
-  results, lockedSeeds, compareIds, onToggleLock, onToggleCompare, onSetAsPanel,
+  results, compareIds, onToggleCompare, onSetAsPanel,
 }: {
   results: Array<{ id: string; seq: number; storage_path: string | null; thumb_path: string | null; seed: number | null }>;
-  lockedSeeds: Record<number, number>;
   compareIds: string[];
-  onToggleLock: (seq: number, seed: number | null) => void;
   onToggleCompare: (id: string) => void;
   onSetAsPanel: ((resultId: string) => void) | null;
 }) {
@@ -1275,7 +1251,6 @@ function VariationGrid({
         />
       )}
       {results.map((r) => {
-        const locked = r.seed != null && lockedSeeds[r.seq] === r.seed;
         const inCompare = compareIds.includes(r.id);
         return (
           <div
@@ -1301,7 +1276,7 @@ function VariationGrid({
 
             <div className="absolute inset-x-0 top-0 flex items-center justify-between p-1.5">
               <span className="rounded-md bg-black/60 px-1.5 py-0.5 text-[10px] font-mono text-white">
-                #{r.seq + 1} · seed {r.seed ?? "—"}
+                #{r.seq + 1}
               </span>
               <div className="flex items-center gap-1">
                 <IconTooltip label={t("lightbox.open")}>
@@ -1322,20 +1297,6 @@ function VariationGrid({
                   variant="secondary"
                   buttonClassName="h-6 w-6"
                 />
-                <IconTooltip label={locked ? t("common.unlock_seed") : t("common.lock_seed")}>
-                  <button
-                    type="button"
-                    onClick={() => onToggleLock(r.seq, r.seed)}
-                    aria-label={locked ? t("common.unlock_seed") : t("common.lock_seed")}
-                    disabled={r.seed == null}
-                    className={
-                      "grid h-6 w-6 place-items-center rounded-md text-white shadow-sm " +
-                      (locked ? "bg-primary" : "bg-black/60 hover:bg-black/80 disabled:opacity-40")
-                    }
-                  >
-                    {locked ? <Lock className="h-3 w-3" aria-hidden="true" /> : <Unlock className="h-3 w-3" aria-hidden="true" />}
-                  </button>
-                </IconTooltip>
               </div>
             </div>
             <div className="absolute inset-x-0 bottom-0 flex items-center gap-1 bg-gradient-to-t from-black/70 to-transparent p-1.5 opacity-0 transition group-hover:opacity-100">
@@ -1391,7 +1352,7 @@ function CompareView({
         {[a, b].map((r, idx) => (
           <div key={r.id} className="space-y-1">
             <div className="text-[10px] font-bold uppercase text-muted-foreground">
-              {idx === 0 ? "A" : "B"} · seed {r.seed ?? "—"}
+              {idx === 0 ? "A" : "B"}
             </div>
             <SignedImage
               bucket="generation-outputs"
