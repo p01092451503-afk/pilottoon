@@ -142,22 +142,41 @@ export function resolveArkImageEndpoint(raw?: string): string {
 export async function callSeedream(payload: Record<string, unknown>): Promise<any> {
   const endpoint = resolveArkImageEndpoint(process.env.ARK_BASE_URL);
   if (!endpoint) throw new Error("ARK_BASE_URL_MISSING");
-  const res = await fetch(endpoint, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${process.env.ARK_API_KEY}`,
-    },
-    body: JSON.stringify(payload),
-  });
-  const data = await res.json().catch(() => null);
-  if (!res.ok) {
-    const err = new Error(`ARK_HTTP_${res.status}`) as Error & { status?: number; detail?: unknown };
-    err.status = res.status;
-    err.detail = data;
-    throw err;
+
+  const maxAttempts = 2;
+  let lastErr: unknown;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${process.env.ARK_API_KEY}`,
+        },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        // ARK가 실제로 응답했다 = 네트워크 문제가 아니다. 재시도하지 않고 즉시 던진다.
+        const err = new Error(`ARK_HTTP_${res.status}`) as Error & { status?: number; detail?: unknown };
+        err.status = res.status;
+        err.detail = data;
+        throw err;
+      }
+      return data; // { data: [{ url, size, ... }], ... }
+    } catch (e) {
+      const err = e as { status?: number };
+      lastErr = e;
+      // status 가 있으면 ARK 응답 기반 에러 → 재시도 금지.
+      if (err.status != null) throw e;
+      // 순수 네트워크 계층 실패만 짧게 재시도.
+      if (attempt < maxAttempts) {
+        await new Promise((r) => setTimeout(r, 400 * attempt));
+        continue;
+      }
+    }
   }
-  return data; // { data: [{ url, size, ... }], ... }
+  throw lastErr;
 }
 
 /**
