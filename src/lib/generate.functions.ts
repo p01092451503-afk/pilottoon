@@ -7,6 +7,7 @@ import {
   checkActionMissing,
   validateFinalPrompt,
   resolveFigureRoleText,
+  checkBannedTokens,
   PROMPT_MAX_CHARS,
 } from "@/lib/promptEngine";
 
@@ -84,6 +85,10 @@ export const generate = createServerFn({ method: "POST" })
     // 2) 프롬프트 정리 및 가드
     let cleanPrompt: string;
     if (data.rawPassthrough) {
+      const banned = checkBannedTokens(data.finalPrompt);
+      if (banned) {
+        throw new Error(`PROMPT_POLICY_VIOLATION_LOCAL: ${banned}`);
+      }
       cleanPrompt = data.finalPrompt;
     } else {
       cleanPrompt = sanitizePrompt(data.finalPrompt);
@@ -198,9 +203,13 @@ export const generate = createServerFn({ method: "POST" })
           arkResults = out.results;
           if (arkResults.length === 0) throw new Error("ARK_NO_IMAGE");
         } catch (e) {
-          const detail = (e as { detail?: unknown }).detail;
+          const err = e as { detail?: unknown; cause?: unknown };
+          const causeInfo = err.cause
+            ? { code: (err.cause as { code?: string })?.code ?? String(err.cause) }
+            : null;
+          const detail = err.detail ?? causeInfo ?? null;
           const msg = e instanceof Error ? e.message : String(e);
-          rawResponses.push({ error: msg, detail: detail ?? null });
+          rawResponses.push({ error: msg, detail });
           batchErrors.push(`#${i + 1}: ${msg}${detail ? ` ${JSON.stringify(detail).slice(0, 400)}` : ""}`);
           await supabaseAdmin
             .from("generations")

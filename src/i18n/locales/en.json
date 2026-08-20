@@ -273,7 +273,8 @@
       "rate_limited": "Rate limit reached. Please try again in a moment.",
       "bad_response": "The image API returned an unreadable response. Check the ARK address setting.",
       "auth_failed": "Image API authentication failed. Check the ARK API key.",
-      "api_failed": "The image API request failed. Please try again."
+      "api_failed": "The image API request failed. Please try again.",
+      "network_failed": "Network connection failed. Please try again in a moment."
     }
   },
   "image_health": {
