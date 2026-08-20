@@ -181,10 +181,13 @@ export type Database = {
           panel_id: string | null
           prompt_edited: boolean
           raw_prompt: string | null
+          raw_responses: Json
+          reference_files: Json
           seed: number | null
           status: string
           tenant_id: string
           user_id: string | null
+          user_memo: string | null
           warnings: Json
           work_label: string
         }
@@ -205,10 +208,13 @@ export type Database = {
           panel_id?: string | null
           prompt_edited?: boolean
           raw_prompt?: string | null
+          raw_responses?: Json
+          reference_files?: Json
           seed?: number | null
           status?: string
           tenant_id: string
           user_id?: string | null
+          user_memo?: string | null
           warnings?: Json
           work_label?: string
         }
@@ -229,10 +235,13 @@ export type Database = {
           panel_id?: string | null
           prompt_edited?: boolean
           raw_prompt?: string | null
+          raw_responses?: Json
+          reference_files?: Json
           seed?: number | null
           status?: string
           tenant_id?: string
           user_id?: string | null
+          user_memo?: string | null
           warnings?: Json
           work_label?: string
         }
