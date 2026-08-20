@@ -1,6 +1,10 @@
 /** Maps raw ARK/server error messages to i18n keys shown to the user. */
 export function generateErrorKey(message: string): string | null {
-  if (message.includes("ARK_SENSITIVE_CONTENT") || message.includes("SensitiveContentDetected"))
+  if (
+    message.includes("ARK_SENSITIVE_CONTENT") ||
+    message.includes("SensitiveContentDetected") ||
+    message.includes("PROMPT_POLICY_VIOLATION_LOCAL")
+  )
     return "studio.errors.sensitive_content";
   if (message.includes("ARK_RATE_LIMITED")) return "studio.errors.rate_limited";
   if (message.includes("ARK_EMPTY_RESPONSE") || message.includes("ARK_BAD_JSON"))
