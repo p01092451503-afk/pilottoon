@@ -118,8 +118,30 @@ export function makePayload(params: {
   };
 }
 
+/**
+ * 저장된 ARK_BASE_URL 이 API 루트만 있거나(예: .../api/v3)
+ * 존재하지 않는 리전 호스트(ap-southeast-1)로 저장된 경우까지 보정해
+ * 실제 이미지 생성 엔드포인트 URL 을 만든다.
+ */
+export function resolveArkImageEndpoint(raw?: string): string {
+  let v = (raw ?? "").trim();
+  if (!v) return "";
+  const lastScheme = v.lastIndexOf("http");
+  if (lastScheme > 0) v = v.slice(lastScheme);
+  v = v.replace(/\/+$/, "");
+  // 존재하지 않는 호스트 보정
+  v = v.replace(/ark\.ap-southeast-\d+\.bytepluses\.com/i, "ark.ap-southeast.bytepluses.com");
+  v = v.replace(/(\/api\/v\d+)(\1)+$/, "$1");
+  if (!/\/images\/generations$/i.test(v)) {
+    v = `${normalizeArkBaseUrl(v)}/images/generations`;
+  }
+  return v;
+}
+
 export async function callSeedream(payload: Record<string, unknown>): Promise<any> {
-  const res = await fetch(process.env.ARK_BASE_URL!, {
+  const endpoint = resolveArkImageEndpoint(process.env.ARK_BASE_URL);
+  if (!endpoint) throw new Error("ARK_BASE_URL_MISSING");
+  const res = await fetch(endpoint, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
