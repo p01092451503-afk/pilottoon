@@ -778,7 +778,9 @@ function Meta({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-xl bg-muted/50 px-3 py-2">
       <div className="text-[10px] font-semibold uppercase text-muted-foreground">{label}</div>
-      <div className="truncate text-xs font-medium">{value}</div>
+      <div className="break-all text-xs font-medium" title={value}>
+        {value}
+      </div>
     </div>
   );
 }
