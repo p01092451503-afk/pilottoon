@@ -7,6 +7,7 @@ import {
   checkActionMissing,
   validateFinalPrompt,
   resolveFigureRoleText,
+  checkBannedTokens,
   PROMPT_MAX_CHARS,
 } from "@/lib/promptEngine";
 
