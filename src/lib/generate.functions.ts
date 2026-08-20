@@ -91,6 +91,8 @@ export const generate = createServerFn({ method: "POST" })
 
     const seed = slotSeeds[0];
     const apiModel = process.env.ARK_ENDPOINT_ID ?? "unknown";
+    // 요청 추적용 ID (요청 시점에 생성 → 실패해도 히스토리에 남는다)
+    const clientRequestId = crypto.randomUUID();
 
     const { data: genRow, error: genErr } = await supabase
       .from("generations")
