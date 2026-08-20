@@ -25,7 +25,18 @@ export function aspectRatioToSize(ar?: string): string {
   }
 }
 
-export type ArkResult = { url: string; width?: number; height?: number };
+export type ArkResult = { url: string; width?: number; height?: number; requestId?: string | null };
+
+/** ARK 응답 헤더에서 공급자 요청 ID 를 추출한다. */
+export function readArkRequestId(headers: Headers): string | null {
+  return (
+    headers.get("x-request-id") ??
+    headers.get("x-tt-logid") ??
+    headers.get("x-tt-trace-id") ??
+    headers.get("request-id") ??
+    null
+  );
+}
 
 // 썸네일은 Worker 환경 호환 이슈로 원본 바이트를 그대로 반환한다.
 // (별도 리사이즈 라이브러리 도입 전까지 원본을 thumb 로 재사용)
