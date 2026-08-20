@@ -21,5 +21,11 @@ export function generateErrorKey(message: string): string | null {
     message.includes("ARK_BASE_URL_MISSING")
   )
     return "studio.errors.network_failed";
+  if (
+    message.includes("ARK_API_KEY_MISSING") ||
+    message.includes("ARK_ENDPOINT_ID_MISSING") ||
+    message.includes("ARK_BASE_URL_MISSING_ENV")
+  )
+    return "studio.errors.config_missing";
   return null;
 }

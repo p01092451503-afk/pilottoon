@@ -113,8 +113,19 @@ export const generate = createServerFn({ method: "POST" })
       );
     }
 
-    // 3) generations row 생성
-    const { aspectRatioToSize, callArk, makeThumbnailWebp } = await import("@/lib/generate.server");
+    // 3) ARK 환경변수 검증 (row 생성 이전에 막아야 실패 시도가 DB에 쌓이지 않음)
+    const {
+      aspectRatioToSize,
+      callArk,
+      makeThumbnailWebp,
+      validateArkEnv,
+    } = await import("@/lib/generate.server");
+    const envError = validateArkEnv();
+    if (envError) {
+      throw new Error(envError);
+    }
+
+    // 4) generations row 생성
     const size = aspectRatioToSize(data.aspectRatio);
     const batchCount = Math.max(1, Math.min(4, data.batchCount ?? 1));
     const apiModel = process.env.ARK_ENDPOINT_ID ?? "unknown";
