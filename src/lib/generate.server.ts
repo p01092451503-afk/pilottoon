@@ -29,13 +29,21 @@ export type ArkResult = { url: string; width?: number; height?: number; requestI
 
 /** ARK 응답 헤더에서 공급자 요청 ID 를 추출한다. */
 export function readArkRequestId(headers: Headers): string | null {
-  return (
+  const direct =
     headers.get("x-request-id") ??
     headers.get("x-tt-logid") ??
     headers.get("x-tt-trace-id") ??
     headers.get("request-id") ??
-    null
-  );
+    headers.get("x-amzn-requestid");
+  if (direct) return direct;
+  // 공급자마다 헤더 이름이 달라서 request-id / logid 계열 헤더를 폭넓게 훑는다.
+  for (const [k, v] of headers.entries()) {
+    const key = k.toLowerCase();
+    if ((key.includes("request-id") || key.includes("requestid") || key.includes("logid")) && v) {
+      return v;
+    }
+  }
+  return null;
 }
 
 // 썸네일은 Worker 환경 호환 이슈로 원본 바이트를 그대로 반환한다.
