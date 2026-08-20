@@ -67,7 +67,7 @@ export const Route = createFileRoute("/_authenticated/history")({
   validateSearch: (s: Record<string, unknown>) => ({
     id: typeof s.id === "string" ? s.id : undefined,
     // 동영상 기능은 숨김 상태이므로 히스토리는 항상 이미지 탭을 보여준다.
-    tab: "image" as const,
+    tab: "image" as "image" | "video",
   }),
   head: () => ({ meta: [{ title: "History · pilottoon" }] }),
 });
@@ -704,6 +704,19 @@ function DetailCard({ row, onClose, locale }: { row: Row; onClose: () => void; l
           <Meta label={t("history.meta.seed")} value={row.seed?.toString() ?? "-"} />
           <Meta label={t("history.meta.batch")} value={String(row.batch_count)} />
           <Meta
+            label={t("history.meta.request_id", "Request ID")}
+            value={(row.options?.clientRequestId as string) ?? row.id}
+          />
+          <Meta
+            label={t("history.meta.response_id", "Response ID")}
+            value={
+              Array.isArray(row.options?.providerResponseIds) &&
+              row.options.providerResponseIds.length > 0
+                ? row.options.providerResponseIds.join(", ")
+                : "-"
+            }
+          />
+          <Meta
             label={t("history.meta.created")}
             value={new Date(row.created_at).toLocaleString(locale)}
           />
@@ -765,7 +778,9 @@ function Meta({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-xl bg-muted/50 px-3 py-2">
       <div className="text-[10px] font-semibold uppercase text-muted-foreground">{label}</div>
-      <div className="truncate text-xs font-medium">{value}</div>
+      <div className="break-all text-xs font-medium" title={value}>
+        {value}
+      </div>
     </div>
   );
 }

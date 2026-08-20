@@ -25,7 +25,18 @@ export function aspectRatioToSize(ar?: string): string {
   }
 }
 
-export type ArkResult = { url: string; width?: number; height?: number };
+export type ArkResult = { url: string; width?: number; height?: number; requestId?: string | null };
+
+/** ARK 응답 헤더에서 공급자 요청 ID 를 추출한다. */
+export function readArkRequestId(headers: Headers): string | null {
+  return (
+    headers.get("x-request-id") ??
+    headers.get("x-tt-logid") ??
+    headers.get("x-tt-trace-id") ??
+    headers.get("request-id") ??
+    null
+  );
+}
 
 // 썸네일은 Worker 환경 호환 이슈로 원본 바이트를 그대로 반환한다.
 // (별도 리사이즈 라이브러리 도입 전까지 원본을 thumb 로 재사용)
@@ -93,18 +104,20 @@ export async function callArk(params: {
         signal: controller.signal,
       });
       clearTimeout(timeout);
+      const reqId = readArkRequestId(res.headers);
 
       if (res.status === 429) {
         throw new Error("ARK_RATE_LIMITED: 요청량 제한에 도달했습니다. 잠시 후 다시 시도해 주세요.");
       }
       if (!res.ok) {
         const text = await res.text().catch(() => "");
+        const suffix = reqId ? ` [request_id=${reqId}]` : "";
         if (text.includes("SensitiveContentDetected") || text.includes("ContentPolicy")) {
           throw new Error(
-            "ARK_SENSITIVE_CONTENT: 프롬프트가 이미지 API의 콘텐츠 정책에 걸렸습니다. 표현을 순화해 다시 시도해 주세요.",
+            `ARK_SENSITIVE_CONTENT: 프롬프트가 이미지 API의 콘텐츠 정책에 걸렸습니다. 표현을 순화해 다시 시도해 주세요.${suffix}`,
           );
         }
-        throw new Error(`ARK_HTTP_${res.status}: ${text.slice(0, 500)}`);
+        throw new Error(`ARK_HTTP_${res.status}: ${text.slice(0, 500)}${suffix}`);
       }
       // 응답이 비어 있거나 JSON 이 아닐 수 있으므로 text 로 읽고 안전하게 파싱한다.
       const bodyText = await res.text();
@@ -113,18 +126,19 @@ export async function callArk(params: {
           "ARK_EMPTY_RESPONSE: 이미지 API가 빈 응답을 반환했습니다. ARK 주소(ARK_BASE_URL) 설정을 확인해 주세요.",
         );
       }
-      let json: { data?: Array<{ url?: string; size?: string }> };
+      let json: { id?: string; request_id?: string; data?: Array<{ url?: string; size?: string }> };
       try {
-        json = JSON.parse(bodyText) as { data?: Array<{ url?: string; size?: string }> };
+        json = JSON.parse(bodyText) as typeof json;
       } catch {
         throw new Error(`ARK_BAD_JSON: 이미지 API 응답을 해석할 수 없습니다. ${bodyText.slice(0, 200)}`);
       }
+      const responseId = json.request_id ?? json.id ?? reqId ?? null;
       const items = Array.isArray(json.data) ? json.data : [];
       const results: ArkResult[] = [];
       for (const it of items) {
         if (typeof it?.url === "string" && /^https?:\/\//i.test(it.url)) {
           const [w, h] = String(it.size ?? params.size).split("x").map((n) => Number(n) || undefined);
-          results.push({ url: it.url, width: w, height: h });
+          results.push({ url: it.url, width: w, height: h, requestId: responseId });
         }
       }
       if (results.length === 0) throw new Error("ARK_NO_IMAGE: 결과 이미지 URL을 파싱할 수 없습니다.");

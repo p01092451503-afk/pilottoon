@@ -327,6 +327,8 @@
       "model": "모델",
       "seed": "시드",
       "batch": "배치",
+      "request_id": "요청 ID",
+      "response_id": "응답 ID",
       "created": "생성일",
       "completed": "완료일",
       "warnings": "경고"

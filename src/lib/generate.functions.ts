@@ -91,6 +91,8 @@ export const generate = createServerFn({ method: "POST" })
 
     const seed = slotSeeds[0];
     const apiModel = process.env.ARK_ENDPOINT_ID ?? "unknown";
+    // 요청 추적용 ID (요청 시점에 생성 → 실패해도 히스토리에 남는다)
+    const clientRequestId = crypto.randomUUID();
 
     const { data: genRow, error: genErr } = await supabase
       .from("generations")
@@ -108,7 +110,7 @@ export const generate = createServerFn({ method: "POST" })
         final_prompt: cleanPrompt,
         raw_prompt: data.rawPrompt ? (data.rawPassthrough ? data.rawPrompt : sanitizePrompt(data.rawPrompt)) : null,
         prompt_edited: data.promptEdited === true,
-        options: { ...data.options, rawPassthrough: data.rawPassthrough },
+        options: { ...data.options, rawPassthrough: data.rawPassthrough, clientRequestId },
         figure_map: data.figureMap,
         batch_count: slotSeeds.length,
         panel_id: data.panelId ?? null,
@@ -144,6 +146,24 @@ export const generate = createServerFn({ method: "POST" })
           callArk({ prompt: cleanPrompt, imageUrls, size, seed: s }).then((r) => r[0]),
         ),
       );
+
+      // 공급자(ARK) 응답 ID 를 히스토리에서 확인할 수 있게 options 에 기록한다.
+      const providerResponseIds = arkPerSlot
+        .map((r) => r?.requestId ?? null)
+        .filter((v): v is string => Boolean(v));
+      if (providerResponseIds.length > 0) {
+        await supabase
+          .from("generations")
+          .update({
+            options: {
+              ...data.options,
+              rawPassthrough: data.rawPassthrough,
+              clientRequestId,
+              providerResponseIds,
+            },
+          })
+          .eq("id", generationId);
+      }
 
       // 7) 결과 이미지 저장
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -245,9 +265,20 @@ export const generate = createServerFn({ method: "POST" })
       const message = err instanceof Error ? err.message : String(err);
       // 시크릿이 로그/응답에 흘러가지 않도록 message 만 저장
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const failedResponseId = /request_id=([^\s\]]+)/.exec(message)?.[1] ?? null;
       await supabaseAdmin
         .from("generations")
-        .update({ status: "error", error_message: message.slice(0, 1000), completed_at: new Date().toISOString() })
+        .update({
+          status: "error",
+          error_message: message.slice(0, 1000),
+          completed_at: new Date().toISOString(),
+          options: {
+            ...data.options,
+            rawPassthrough: data.rawPassthrough,
+            clientRequestId,
+            providerResponseIds: failedResponseId ? [failedResponseId] : [],
+          },
+        })
         .eq("id", generationId);
       if (data.panelId) {
         await supabaseAdmin.from("panels").update({ status: "empty" }).eq("id", data.panelId);
