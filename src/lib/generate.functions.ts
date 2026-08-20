@@ -179,7 +179,8 @@ export const generate = createServerFn({ method: "POST" })
       }
 
       // 5) 순차 배치 호출 (V21.7 server.js 방식)
-      const rawResponses: unknown[] = [];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const rawResponses: any[] = [];
       const batchErrors: string[] = [];
       const referenceFiles: Array<{ figure: string; role: string; file: string; apiOrder: number }> = [];
       let savedCount = 0;
