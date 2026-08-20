@@ -241,12 +241,13 @@ function GeneratePage() {
     if (poseRef) imagePaths.push(poseRef.path);
     if (styleRef) imagePaths.push(styleRef.path);
 
-    const useLocks = opts?.keepLocks && Object.keys(lockedSeeds).length > 0;
-    const seeds: number[] | undefined = useLocks
-      ? Array.from({ length: batchCount }, (_, i) =>
-          lockedSeeds[i] ?? Math.floor(Math.random() * 2_000_000_000),
-        )
-      : undefined;
+    // 참조 이미지 역할 매핑 (서버에서 참조 스냅샷 저장 시 사용)
+    const referenceRoles: Array<{ role: string; path: string }> = [];
+    if (charA?.primary_path) referenceRoles.push({ role: "charA", path: charA.primary_path });
+    if (charB?.primary_path) referenceRoles.push({ role: "charB", path: charB.primary_path });
+    if (bgRef) referenceRoles.push({ role: "bg", path: bgRef.path });
+    if (poseRef) referenceRoles.push({ role: "pose", path: poseRef.path });
+    if (styleRef) referenceRoles.push({ role: "style", path: styleRef.path });
 
     try {
       const res = await gen.run({
@@ -262,7 +263,9 @@ function GeneratePage() {
         figureMap,
         options: { ...work, aspectRatio },
         batchCount,
-        seeds,
+        referenceRoles,
+        conflictWarnings: rawMode ? [] : built.warnings,
+        userMemo: work.directionMemo || undefined,
         panelId: panelId ?? undefined,
       });
       if (res?.status === "error") {
