@@ -131,6 +131,8 @@ export async function callArk(params: {
   sequentialMode?: "auto" | "disabled";
   /** sequentialMode=auto 일 때 최대 생성 장수 */
   maxImages?: number;
+  /** true 일 때만 payload 에 seed 를 포함한다(업로드 소스는 seed 미사용). */
+  sendSeed?: boolean;
   /** Kept for backward-compat but ignored — the handler now issues one ARK call per seed to produce real variation. */
   batchCount?: number;
 }): Promise<ArkResult[]> {
