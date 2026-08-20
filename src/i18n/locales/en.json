@@ -327,6 +327,8 @@
       "model": "Model",
       "seed": "Seed",
       "batch": "Batch",
+      "request_id": "Request ID",
+      "response_id": "Response ID",
       "created": "Created",
       "completed": "Completed",
       "warnings": "Warnings"
