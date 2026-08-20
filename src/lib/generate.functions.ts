@@ -191,7 +191,8 @@ export const generate = createServerFn({ method: "POST" })
             imageUrls,
             size,
             seed: s,
-            sequentialMode: "disabled",
+            sequentialMode: "auto",
+            maxImages: 1,
           }).then((r) => r[0]),
         ),
       );
