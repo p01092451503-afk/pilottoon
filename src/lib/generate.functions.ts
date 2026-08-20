@@ -110,7 +110,7 @@ export const generate = createServerFn({ method: "POST" })
         final_prompt: cleanPrompt,
         raw_prompt: data.rawPrompt ? (data.rawPassthrough ? data.rawPrompt : sanitizePrompt(data.rawPrompt)) : null,
         prompt_edited: data.promptEdited === true,
-        options: { ...data.options, rawPassthrough: data.rawPassthrough },
+        options: { ...data.options, rawPassthrough: data.rawPassthrough, clientRequestId },
         figure_map: data.figureMap,
         batch_count: slotSeeds.length,
         panel_id: data.panelId ?? null,
