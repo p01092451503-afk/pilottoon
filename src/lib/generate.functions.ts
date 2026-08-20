@@ -135,26 +135,67 @@ export const generate = createServerFn({ method: "POST" })
 
     try {
       // 4) character-refs 서명 URL 발급 (ARK가 fetch 가능한 공인 URL)
+      //    옵션 inlineReferenceImages=true 이거나 서명 URL 발급이 실패하면 base64 인라인으로 대체한다.
       const inputPaths = [...data.imagePaths];
       if (data.mode === "edit" && data.editImagePath) inputPaths.unshift(data.editImagePath);
+      const forceInline = (data.options as Record<string, unknown>).inlineReferenceImages === true;
+
+      const toDataUrl = async (p: string): Promise<string> => {
+        const { data: blob, error: dErr } = await supabase.storage.from("character-refs").download(p);
+        if (dErr || !blob) throw new Error(`REF_IMAGE_DOWNLOAD_FAILED: ${p} ${dErr?.message ?? ""}`);
+        const bytes = new Uint8Array(await blob.arrayBuffer());
+        let bin = "";
+        const chunk = 0x8000;
+        for (let i = 0; i < bytes.length; i += chunk) {
+          bin += String.fromCharCode(...bytes.subarray(i, i + chunk));
+        }
+        const mime = blob.type || "image/png";
+        return `data:${mime};base64,${btoa(bin)}`;
+      };
 
       const imageUrls: string[] = [];
       for (const p of inputPaths) {
+        if (forceInline) {
+          imageUrls.push(await toDataUrl(p));
+          continue;
+        }
         const { data: signed, error: sErr } = await supabase.storage
           .from("character-refs")
           .createSignedUrl(p, 300);
         if (sErr || !signed?.signedUrl) {
-          throw new Error(`SIGNED_URL_FAILED: ${p} ${sErr?.message ?? ""}`);
+          // 서명 URL 실패 시 base64 인라인으로 폴백
+          console.warn("SIGNED_URL_FAILED_FALLBACK_BASE64", p, sErr?.message ?? "");
+          imageUrls.push(await toDataUrl(p));
+          continue;
         }
         imageUrls.push(signed.signedUrl);
       }
 
       // 5) ARK 호출 — 슬롯별 seed 로 병렬 요청하여 실제 변형(variation) 결과를 얻는다.
+      //    배치일 때는 슬롯별 variation 문구를 덧붙여 실제 변형 폭을 넓힌다.
+      const VARIATION_HINTS = [
+        "",
+        " Variation 2: subtly different pose and camera framing, same character and style.",
+        " Variation 3: alternative composition and gesture, same character and style.",
+        " Variation 4: different angle and expression nuance, same character and style.",
+      ];
+      const promptForSlot = (i: number) =>
+        slotSeeds.length > 1 && !data.rawPassthrough
+          ? `${cleanPrompt}${VARIATION_HINTS[i] ?? ""}`
+          : cleanPrompt;
+
       const arkPerSlot = await Promise.all(
-        slotSeeds.map((s) =>
-          callArk({ prompt: cleanPrompt, imageUrls, size, seed: s }).then((r) => r[0]),
+        slotSeeds.map((s, i) =>
+          callArk({
+            prompt: promptForSlot(i),
+            imageUrls,
+            size,
+            seed: s,
+            sequentialMode: "disabled",
+          }).then((r) => r[0]),
         ),
       );
+
 
       // 공급자(ARK) 응답 ID 를 히스토리에서 확인할 수 있게 options 에 기록한다.
       const providerResponseIds = arkPerSlot
