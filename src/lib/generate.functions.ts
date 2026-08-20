@@ -265,9 +265,20 @@ export const generate = createServerFn({ method: "POST" })
       const message = err instanceof Error ? err.message : String(err);
       // 시크릿이 로그/응답에 흘러가지 않도록 message 만 저장
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const failedResponseId = /request_id=([^\s\]]+)/.exec(message)?.[1] ?? null;
       await supabaseAdmin
         .from("generations")
-        .update({ status: "error", error_message: message.slice(0, 1000), completed_at: new Date().toISOString() })
+        .update({
+          status: "error",
+          error_message: message.slice(0, 1000),
+          completed_at: new Date().toISOString(),
+          options: {
+            ...data.options,
+            rawPassthrough: data.rawPassthrough,
+            clientRequestId,
+            providerResponseIds: failedResponseId ? [failedResponseId] : [],
+          },
+        })
         .eq("id", generationId);
       if (data.panelId) {
         await supabaseAdmin.from("panels").update({ status: "empty" }).eq("id", data.panelId);
