@@ -198,9 +198,13 @@ export const generate = createServerFn({ method: "POST" })
           arkResults = out.results;
           if (arkResults.length === 0) throw new Error("ARK_NO_IMAGE");
         } catch (e) {
-          const detail = (e as { detail?: unknown }).detail;
+          const err = e as { detail?: unknown; cause?: unknown };
+          const causeInfo = err.cause
+            ? { code: (err.cause as { code?: string })?.code ?? String(err.cause) }
+            : null;
+          const detail = err.detail ?? causeInfo ?? null;
           const msg = e instanceof Error ? e.message : String(e);
-          rawResponses.push({ error: msg, detail: detail ?? null });
+          rawResponses.push({ error: msg, detail });
           batchErrors.push(`#${i + 1}: ${msg}${detail ? ` ${JSON.stringify(detail).slice(0, 400)}` : ""}`);
           await supabaseAdmin
             .from("generations")
