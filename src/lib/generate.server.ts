@@ -3,7 +3,55 @@
 
 export type AspectRatio = "9:16" | "16:9" | "1:1" | "4:3" | "3:4" | "21:9" | "9:21";
 
-// aspectRatio → size 매핑 (원본 규칙 준수: 최소 3,686,400px 이상 + 16의 배수)
+// 최소 픽셀 수(3,686,400px) 이상 + 16의 배수로 맞춘 동적 해상도 계산기.
+// 프리셋 비율은 물론 "5:4" 같은 커스텀 비율 문자열도 지원한다.
+const MIN_PIXELS = 3_686_400;
+const MAX_SIDE = 4320;
+
+function round16(n: number): number {
+  return Math.max(16, Math.round(n / 16) * 16);
+}
+
+/** "W:H" (또는 "W/H", "W x H") 문자열을 비율 숫자로 파싱한다. */
+export function parseAspectRatio(ar?: string): { w: number; h: number } | null {
+  if (!ar) return null;
+  const m = /^\s*(\d+(?:\.\d+)?)\s*[:/x×]\s*(\d+(?:\.\d+)?)\s*$/i.exec(ar);
+  if (!m) return null;
+  const w = Number(m[1]);
+  const h = Number(m[2]);
+  if (!w || !h) return null;
+  return { w, h };
+}
+
+/** 비율에 맞춰 최소 픽셀 수를 만족하는 16의 배수 해상도를 계산한다. */
+export function computeSizeFromRatio(w: number, h: number): string {
+  const ratio = w / h;
+  // width = sqrt(MIN_PIXELS * ratio)
+  let width = Math.sqrt(MIN_PIXELS * ratio);
+  let height = width / ratio;
+  // 16의 배수로 올림 정렬 후 최소 픽셀 미달이면 조금씩 키운다.
+  let W = round16(width);
+  let H = round16(height);
+  let guard = 0;
+  while (W * H < MIN_PIXELS && guard++ < 64) {
+    width *= 1.01;
+    height = width / ratio;
+    W = round16(width);
+    H = round16(height);
+  }
+  // 과도한 장변 제한
+  if (W > MAX_SIDE) {
+    W = round16(MAX_SIDE);
+    H = round16(W / ratio);
+  }
+  if (H > MAX_SIDE) {
+    H = round16(MAX_SIDE);
+    W = round16(H * ratio);
+  }
+  return `${W}x${H}`;
+}
+
+// aspectRatio → size 매핑 (검증된 프리셋은 고정값, 그 외는 동적 계산)
 export function aspectRatioToSize(ar?: string): string {
   switch (ar) {
     case "9:16":
@@ -20,10 +68,14 @@ export function aspectRatioToSize(ar?: string): string {
       return "4320x1856";
     case "9:21":
       return "1856x4320";
-    default:
+    default: {
+      const parsed = parseAspectRatio(ar);
+      if (parsed) return computeSizeFromRatio(parsed.w, parsed.h);
       return "2880x2880"; // 안전 기본값 (문자열 '2K' 반환 금지)
+    }
   }
 }
+
 
 export type ArkResult = { url: string; width?: number; height?: number; requestId?: string | null };
 
