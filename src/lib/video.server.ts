@@ -9,6 +9,8 @@ export type VideoTaskState = {
   error?: string;
 };
 
+import { normalizeArkBaseUrl } from "@/lib/generate.server";
+
 /** BytePlus ModelArk official pinned Seedance 2.0 model version. */
 export const SEEDANCE_2_MODEL = "dreamina-seedance-2-0-260128";
 
@@ -28,7 +30,8 @@ function arkEnv() {
   }
   return {
     key: ARK_API_KEY,
-    base: ARK_BASE_URL.replace(/\/$/, ""),
+    // ARK_BASE_URL 은 이미지 전용 풀 엔드포인트 URL 일 수 있으므로 API 루트만 사용한다.
+    base: normalizeArkBaseUrl(ARK_BASE_URL),
     candidates,
     model: candidates[0]!,
   };
