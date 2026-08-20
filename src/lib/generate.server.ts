@@ -131,6 +131,8 @@ export async function callArk(params: {
   sequentialMode?: "auto" | "disabled";
   /** sequentialMode=auto 일 때 최대 생성 장수 */
   maxImages?: number;
+  /** true 일 때만 payload 에 seed 를 포함한다(업로드 소스는 seed 미사용). */
+  sendSeed?: boolean;
   /** Kept for backward-compat but ignored — the handler now issues one ARK call per seed to produce real variation. */
   batchCount?: number;
 }): Promise<ArkResult[]> {
@@ -141,7 +143,11 @@ export async function callArk(params: {
     throw new Error("ARK 시크릿이 설정되지 않았습니다.");
   }
 
-  const sequentialMode = params.sequentialMode ?? "disabled";
+  // 업로드 소스(V21.7 STABLE)의 makePayload() 와 동일한 형태로 전송한다.
+  //   model, prompt, image[], response_format, size, watermark,
+  //   sequential_image_generation, sequential_image_generation_options, stream
+  // (n / seed 는 업로드 소스에 없으므로 기본적으로 보내지 않는다.)
+  const sequentialMode = params.sequentialMode ?? "auto";
   const url = `${normalizeArkBaseUrl(ARK_BASE_URL)}/images/generations`;
   const payload: Record<string, unknown> = {
     model: ARK_ENDPOINT_ID,
@@ -149,18 +155,17 @@ export async function callArk(params: {
     response_format: "url",
     size: params.size,
     watermark: false,
-    n: 1,
-    // 업로드 소스(V21.7)와 동일하게 순차 생성 동작을 명시한다.
     sequential_image_generation: sequentialMode,
-  };
-  if (sequentialMode === "auto") {
-    payload.sequential_image_generation_options = {
+    sequential_image_generation_options: {
       max_images: Math.max(1, Math.min(4, params.maxImages ?? 1)),
-    };
-  }
+    },
+    stream: false,
+  };
 
   if (params.imageUrls.length > 0) payload.image = params.imageUrls;
-  if (params.seed != null) payload.seed = params.seed;
+  // seed 는 옵션(sendSeed)을 켠 경우에만 추가 — 업로드 소스는 seed 를 사용하지 않는다.
+  if (params.sendSeed && params.seed != null) payload.seed = params.seed;
+
 
   const maxAttempts = 2;
   let lastErr: unknown;
