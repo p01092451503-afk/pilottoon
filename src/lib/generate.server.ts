@@ -43,6 +43,22 @@ function ratioToSeedreamSize(wRatio: number, hRatio: number): string {
 }
 
 /** 이미지(Seedream) 전용 해상도 계산기. 비디오 생성 경로에서는 사용하지 않는다. */
+function isPlaceholder(value: string | undefined): boolean {
+  return !value || /your_|example|replace_me|placeholder/i.test(value);
+}
+
+/**
+ * ARK 호출에 필요한 환경변수가 실제로 유효한 값인지 검증한다.
+ * 문제가 있으면 어떤 변수가 문제인지 명시한 에러 코드 문자열을 반환하고,
+ * 정상이면 null 을 반환한다.
+ */
+export function validateArkEnv(): string | null {
+  if (isPlaceholder(process.env.ARK_API_KEY)) return "ARK_API_KEY_MISSING";
+  if (isPlaceholder(process.env.ARK_ENDPOINT_ID)) return "ARK_ENDPOINT_ID_MISSING";
+  if (isPlaceholder(process.env.ARK_BASE_URL)) return "ARK_BASE_URL_MISSING_ENV";
+  return null;
+}
+
 export function aspectRatioToSize(aspectRatio?: string): string {
   const raw = String(aspectRatio || "").trim();
   const map: Record<string, string> = {

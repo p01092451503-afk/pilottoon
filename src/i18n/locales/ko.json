@@ -274,7 +274,8 @@
       "bad_response": "이미지 API 응답을 해석할 수 없습니다. ARK 주소 설정을 확인해 주세요.",
       "auth_failed": "이미지 API 인증에 실패했습니다. ARK API 키를 확인해 주세요.",
       "api_failed": "이미지 API 요청에 실패했습니다. 다시 시도해 주세요.",
-      "network_failed": "네트워크 연결에 실패했습니다. 잠시 후 다시 시도해 주세요."
+      "network_failed": "네트워크 연결에 실패했습니다. 잠시 후 다시 시도해 주세요.",
+      "config_missing": "이미지 API 설정(ARK_API_KEY / ARK_ENDPOINT_ID / ARK_BASE_URL)이 비어있거나 잘못되었습니다. 관리자에게 문의해 주세요."
     }
   },
   "image_health": {

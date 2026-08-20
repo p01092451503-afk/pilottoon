@@ -274,7 +274,8 @@
       "bad_response": "The image API returned an unreadable response. Check the ARK address setting.",
       "auth_failed": "Image API authentication failed. Check the ARK API key.",
       "api_failed": "The image API request failed. Please try again.",
-      "network_failed": "Network connection failed. Please try again in a moment."
+      "network_failed": "Network connection failed. Please try again in a moment.",
+      "config_missing": "The image API configuration (ARK_API_KEY / ARK_ENDPOINT_ID / ARK_BASE_URL) is missing or invalid. Please contact an administrator."
     }
   },
   "image_health": {
