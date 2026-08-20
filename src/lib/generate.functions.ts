@@ -71,7 +71,15 @@ export const generate = createServerFn({ method: "POST" })
           throw new Error("ACTION_TEXT_MISSING");
         }
       }
+      // 5) 전송 직전 Character A/B 등 UI 라벨을 Figure 어휘로 정규화한다.
+      const figures = (data.figureMap ?? []) as Array<{ figNo?: number } | undefined>;
+      cleanPrompt = resolveFigureRoleText(
+        cleanPrompt,
+        figures[0] as never,
+        figures[1] as never,
+      );
     }
+
 
     // 3) generations row 생성
     const { aspectRatioToSize, callArk, makeThumbnailWebp } = await import("@/lib/generate.server");
