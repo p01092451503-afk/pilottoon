@@ -147,6 +147,24 @@ export const generate = createServerFn({ method: "POST" })
         ),
       );
 
+      // 공급자(ARK) 응답 ID 를 히스토리에서 확인할 수 있게 options 에 기록한다.
+      const providerResponseIds = arkPerSlot
+        .map((r) => r?.requestId ?? null)
+        .filter((v): v is string => Boolean(v));
+      if (providerResponseIds.length > 0) {
+        await supabase
+          .from("generations")
+          .update({
+            options: {
+              ...data.options,
+              rawPassthrough: data.rawPassthrough,
+              clientRequestId,
+              providerResponseIds,
+            },
+          })
+          .eq("id", generationId);
+      }
+
       // 7) 결과 이미지 저장
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       const savedResults: Array<{
