@@ -249,7 +249,7 @@ function GeneratePage() {
       : undefined;
 
     try {
-      await gen.run({
+      const res = await gen.run({
         workLabel: "W1",
         mode: "new",
         aspectRatio,
@@ -265,6 +265,12 @@ function GeneratePage() {
         seeds,
         panelId: panelId ?? undefined,
       });
+      if (res?.status === "error") {
+        const msg = res.errorMessage ?? "GENERATION_FAILED";
+        const key = generateErrorKey(msg);
+        toast.error(key ? t(key) : msg);
+        return;
+      }
       setCompareIds([]);
       toast.success(panelId ? t("studio.submitted_panel") : t("studio.submitted"));
     } catch (e) {
@@ -273,6 +279,7 @@ function GeneratePage() {
       toast.error(key ? t(key) : msg);
     }
   }
+
 
   function toggleLock(seq: number, seed: number | null) {
     if (seed == null) return;

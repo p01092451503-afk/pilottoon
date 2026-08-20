@@ -311,7 +311,7 @@ export const generate = createServerFn({ method: "POST" })
         await supabaseAdmin.from("panels").update(panelPatch).eq("id", data.panelId);
       }
 
-      return { generationId, status: "done" as const };
+      return { generationId, status: "done" as const, errorMessage: null as string | null };
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       // 시크릿이 로그/응답에 흘러가지 않도록 message 만 저장
@@ -334,6 +334,9 @@ export const generate = createServerFn({ method: "POST" })
       if (data.panelId) {
         await supabaseAdmin.from("panels").update({ status: "empty" }).eq("id", data.panelId);
       }
-      throw new Error(message);
+      // 콘텐츠 정책·레이트리밋 등 "사용자에게 안내하면 되는" 실패는 throw 하지 않고
+      // 결과로 돌려준다. (throw 하면 서버 함수가 500 으로 떨어져 런타임 에러 화면이 뜬다)
+      return { generationId, status: "error" as const, errorMessage: message };
     }
   });
+
