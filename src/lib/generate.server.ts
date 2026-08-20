@@ -87,6 +87,7 @@ export function normalizeArkBaseUrl(raw: string): string {
   const lastScheme = v.lastIndexOf("http");
   if (lastScheme > 0) v = v.slice(lastScheme);
   v = v.replace(/\/+$/, "");
+  v = v.replace(/ark\.ap-southeast-\d+\.bytepluses\.com/i, "ark.ap-southeast.bytepluses.com");
   v = v.replace(/(\/api\/v\d+)(\1)+$/, "$1");
   // 풀 엔드포인트 URL 이 들어온 경우 API 루트만 남긴다.
   v = v.replace(/\/(images|contents)\/generations?\/?$/i, "");
