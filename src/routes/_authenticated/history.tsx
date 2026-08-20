@@ -704,6 +704,19 @@ function DetailCard({ row, onClose, locale }: { row: Row; onClose: () => void; l
           <Meta label={t("history.meta.seed")} value={row.seed?.toString() ?? "-"} />
           <Meta label={t("history.meta.batch")} value={String(row.batch_count)} />
           <Meta
+            label={t("history.meta.request_id", "Request ID")}
+            value={(row.options?.clientRequestId as string) ?? row.id}
+          />
+          <Meta
+            label={t("history.meta.response_id", "Response ID")}
+            value={
+              Array.isArray(row.options?.providerResponseIds) &&
+              row.options.providerResponseIds.length > 0
+                ? row.options.providerResponseIds.join(", ")
+                : "-"
+            }
+          />
+          <Meta
             label={t("history.meta.created")}
             value={new Date(row.created_at).toLocaleString(locale)}
           />
