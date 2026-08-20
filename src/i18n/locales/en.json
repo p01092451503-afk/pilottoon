@@ -31,8 +31,6 @@
     "close_details": "Close details",
     "delete_item": "Delete",
     "remove_from_cast": "Remove from cast",
-    "lock_seed": "Lock this seed",
-    "unlock_seed": "Unlock this seed",
     "close_compare": "Close compare",
     "toggle_sidebar": "Toggle sidebar",
     "language": "Language",
@@ -238,8 +236,6 @@
       "batch": "Batch (variants)",
       "words": "{{count}} words",
       "figure_hint": "Add references and they'll map automatically.",
-      "vary_the_rest": "Vary the rest ({{count}} locked)",
-      "clear_locks": "Clear locks",
       "compare": "Compare",
       "selected": "Selected",
       "use_for_panel": "Use for panel",
@@ -268,7 +264,9 @@
       "raw_mode": "Send raw prompt",
       "raw_badge": "Raw · sent as-is",
       "raw_placeholder": "Type the exact prompt to send to Seedream.",
-      "raw_empty": "Enter a prompt to send."
+      "raw_empty": "Enter a prompt to send.",
+      "user_memo": "Free Memo",
+      "user_memo_placeholder": "Notes for your own record; never sent to the image API"
     },
     "errors": {
       "sensitive_content": "The image API blocked this prompt for sensitive content. Please soften the wording (avoid explicit or violent phrasing) and try again.",

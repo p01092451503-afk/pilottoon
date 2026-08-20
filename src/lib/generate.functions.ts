@@ -189,7 +189,7 @@ export const generate = createServerFn({ method: "POST" })
         const prompt =
           i === 0
             ? cleanPrompt
-            : `${cleanPrompt} Generate variation ${i + 1}. Keep character identity and composition. Vary minor expression, lighting, and details.`;
+            : `${cleanPrompt}\n\nGenerate variation ${i + 1}. Keep character identity and composition. Vary minor expression, lighting, and details.`;
 
         let arkResults: Array<{ url: string; width?: number; height?: number }> = [];
         try {

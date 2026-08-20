@@ -31,8 +31,6 @@
     "close_details": "상세 닫기",
     "delete_item": "삭제",
     "remove_from_cast": "출연진에서 제거",
-    "lock_seed": "이 시드 고정",
-    "unlock_seed": "시드 고정 해제",
     "close_compare": "비교 닫기",
     "toggle_sidebar": "사이드바 열기/닫기",
     "language": "언어",
@@ -238,8 +236,6 @@
       "batch": "배치 (변형 수)",
       "words": "{{count}} 단어",
       "figure_hint": "레퍼런스를 추가하면 자동으로 매핑됩니다.",
-      "vary_the_rest": "나머지 변형 ({{count}}개 고정됨)",
-      "clear_locks": "고정 해제",
       "compare": "비교",
       "selected": "선택됨",
       "use_for_panel": "이 컷 사용",
@@ -268,7 +264,9 @@
       "raw_mode": "원문 그대로 전송",
       "raw_badge": "원문 전송 · 가공 없음",
       "raw_placeholder": "Seedream API로 그대로 보낼 프롬프트를 입력하세요.",
-      "raw_empty": "보낼 프롬프트를 입력해 주세요."
+      "raw_empty": "보낼 프롬프트를 입력해 주세요.",
+      "user_memo": "자유 메모",
+      "user_memo_placeholder": "프롬프트에는 포함되지 않는 기록용 메모입니다"
     },
     "errors": {
       "sensitive_content": "이미지 API가 민감한 표현으로 판단해 요청을 거부했습니다. 표현을 순화(노골적·폭력적 문구 제거)해 다시 시도해 주세요.",

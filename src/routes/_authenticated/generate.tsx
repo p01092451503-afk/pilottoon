@@ -440,6 +440,16 @@ function GeneratePage() {
                 className="rounded-xl bg-muted/50 leading-relaxed"
               />
             </FieldGroup>
+            <FieldGroup label={t("studio.labels.user_memo")}>
+              <AutoResizeTextarea
+                minHeight={80}
+                maxHeight={320}
+                value={userMemo}
+                onChange={(e) => setUserMemo(e.target.value)}
+                placeholder={t("studio.labels.user_memo_placeholder")}
+                className="rounded-xl bg-muted/50 leading-relaxed"
+              />
+            </FieldGroup>
 
 
             <div className="flex items-center justify-between rounded-xl bg-muted/50 px-4 py-3">
