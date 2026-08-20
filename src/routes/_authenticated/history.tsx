@@ -67,7 +67,7 @@ export const Route = createFileRoute("/_authenticated/history")({
   validateSearch: (s: Record<string, unknown>) => ({
     id: typeof s.id === "string" ? s.id : undefined,
     // 동영상 기능은 숨김 상태이므로 히스토리는 항상 이미지 탭을 보여준다.
-    tab: "image" as const,
+    tab: "image" as "image" | "video",
   }),
   head: () => ({ meta: [{ title: "History · pilottoon" }] }),
 });
