@@ -1,237 +1,169 @@
 // Server-only helpers for the generate server function.
 // This file must NOT be imported from client code.
+//
+// NOTE (의도된 변경 / intentional behavior change):
+// 이 파일의 ARK 호출부는 로컬 프로토타입 "Studio0103 Seedream Generator V21.7"의
+// server/server.js 구현(makePayload + callSeedream)과 동일하게 맞췄다.
+// 이번 전환으로 아래 기능들은 의도적으로 제거되었다:
+//   - 요청 재시도(429 backoff)
+//   - 응답 헤더 기반 request-id 추적
+//   - SensitiveContent/ContentPolicy 문자열 감지 및 사용자 안내 메시지 변환
+//   - seed 파라미터 전송(= seed 기반 실제 variation)
+//   - signed URL 참조 이미지 전달(→ base64 dataURL 직접 전달)
+// 실패는 status/detail 을 그대로 상위로 던진다.
 
-export type AspectRatio = "9:16" | "16:9" | "1:1" | "4:3" | "3:4" | "21:9" | "9:21";
+export type AspectRatio = "9:16" | "16:9" | "1:1" | "4:3" | "3:4";
 
-// 최소 픽셀 수(3,686,400px) 이상 + 16의 배수로 맞춘 동적 해상도 계산기.
-// 프리셋 비율은 물론 "5:4" 같은 커스텀 비율 문자열도 지원한다.
-const MIN_PIXELS = 3_686_400;
-const MAX_SIDE = 4320;
+const SEEDREAM_MIN_PIXELS = 3686400;
+const SEEDREAM_TARGET_PIXELS = 3840 * 2160;
 
-function round16(n: number): number {
-  return Math.max(16, Math.round(n / 16) * 16);
+function roundUpTo16(n: number): number {
+  return Math.max(16, Math.ceil(Number(n) / 16) * 16);
 }
 
-/** "W:H" (또는 "W/H", "W x H") 문자열을 비율 숫자로 파싱한다. */
-export function parseAspectRatio(ar?: string): { w: number; h: number } | null {
-  if (!ar) return null;
-  const m = /^\s*(\d+(?:\.\d+)?)\s*[:/x×]\s*(\d+(?:\.\d+)?)\s*$/i.exec(ar);
-  if (!m) return null;
-  const w = Number(m[1]);
-  const h = Number(m[2]);
-  if (!w || !h) return null;
-  return { w, h };
+function normalizeSeedreamSize(width: number, height: number): string {
+  let w = roundUpTo16(width);
+  let h = roundUpTo16(height);
+  if (w * h < SEEDREAM_MIN_PIXELS) {
+    const scale = Math.sqrt(SEEDREAM_MIN_PIXELS / (w * h));
+    w = roundUpTo16(w * scale);
+    h = roundUpTo16(h * scale);
+  }
+  while (w * h < SEEDREAM_MIN_PIXELS) {
+    if (w >= h) w += 16;
+    else h += 16;
+  }
+  return `${w}x${h}`;
 }
 
-/** 비율에 맞춰 최소 픽셀 수를 만족하는 16의 배수 해상도를 계산한다. */
-export function computeSizeFromRatio(w: number, h: number): string {
-  const ratio = w / h;
-  // width = sqrt(MIN_PIXELS * ratio)
-  let width = Math.sqrt(MIN_PIXELS * ratio);
-  let height = width / ratio;
-  // 16의 배수로 올림 정렬 후 최소 픽셀 미달이면 조금씩 키운다.
-  let W = round16(width);
-  let H = round16(height);
-  let guard = 0;
-  while (W * H < MIN_PIXELS && guard++ < 64) {
-    width *= 1.01;
-    height = width / ratio;
-    W = round16(width);
-    H = round16(height);
-  }
-  // 과도한 장변 제한
-  if (W > MAX_SIDE) {
-    W = round16(MAX_SIDE);
-    H = round16(W / ratio);
-  }
-  if (H > MAX_SIDE) {
-    H = round16(MAX_SIDE);
-    W = round16(H * ratio);
-  }
-  return `${W}x${H}`;
+function ratioToSeedreamSize(wRatio: number, hRatio: number): string {
+  const width = Math.sqrt((SEEDREAM_TARGET_PIXELS * wRatio) / hRatio);
+  const height = Math.sqrt((SEEDREAM_TARGET_PIXELS * hRatio) / wRatio);
+  return normalizeSeedreamSize(width, height);
 }
 
-// aspectRatio → size 매핑 (검증된 프리셋은 고정값, 그 외는 동적 계산)
-export function aspectRatioToSize(ar?: string): string {
-  switch (ar) {
-    case "9:16":
-      return "2160x3840";
-    case "16:9":
-      return "3840x2160";
-    case "1:1":
-      return "2880x2880";
-    case "4:3":
-      return "3520x2640";
-    case "3:4":
-      return "2640x3520";
-    case "21:9":
-      return "4320x1856";
-    case "9:21":
-      return "1856x4320";
-    default: {
-      const parsed = parseAspectRatio(ar);
-      if (parsed) return computeSizeFromRatio(parsed.w, parsed.h);
-      return "2880x2880"; // 안전 기본값 (문자열 '2K' 반환 금지)
-    }
+/** 이미지(Seedream) 전용 해상도 계산기. 비디오 생성 경로에서는 사용하지 않는다. */
+export function aspectRatioToSize(aspectRatio?: string): string {
+  const raw = String(aspectRatio || "").trim();
+  const map: Record<string, string> = {
+    "9:16": "2160x3840",
+    "16:9": "3840x2160",
+    "3:4": "2496x3328",
+    "4:3": "3328x2496",
+    "2:3": "2352x3528",
+    "3:2": "3528x2352",
+    "1:1": "2880x2880",
+    "4:5": "2560x3200",
+    "5:4": "3200x2560",
+  };
+  if (map[raw]) return map[raw]!;
+
+  const explicit = raw.match(/^(\d{3,5})x(\d{3,5})$/i);
+  if (explicit) return normalizeSeedreamSize(Number(explicit[1]), Number(explicit[2]));
+
+  const ratio = raw.match(/^(\d+(?:\.\d+)?)\s*:\s*(\d+(?:\.\d+)?)$/);
+  if (ratio) {
+    const wRatio = Number(ratio[1]);
+    const hRatio = Number(ratio[2]);
+    if (wRatio > 0 && hRatio > 0) return ratioToSeedreamSize(wRatio, hRatio);
   }
+  return "2K";
 }
 
-
-export type ArkResult = { url: string; width?: number; height?: number; requestId?: string | null };
-
-/** ARK 응답 헤더에서 공급자 요청 ID 를 추출한다. */
-export function readArkRequestId(headers: Headers): string | null {
-  const direct =
-    headers.get("x-request-id") ??
-    headers.get("x-tt-logid") ??
-    headers.get("x-tt-trace-id") ??
-    headers.get("request-id") ??
-    headers.get("x-amzn-requestid");
-  if (direct) return direct;
-  // 공급자마다 헤더 이름이 달라서 request-id / logid 계열 헤더를 폭넓게 훑는다.
-  for (const [k, v] of headers.entries()) {
-    const key = k.toLowerCase();
-    if ((key.includes("request-id") || key.includes("requestid") || key.includes("logid")) && v) {
-      return v;
-    }
-  }
-  return null;
-}
+export type ArkResult = { url: string; width?: number; height?: number };
 
 // 썸네일은 Worker 환경 호환 이슈로 원본 바이트를 그대로 반환한다.
-// (별도 리사이즈 라이브러리 도입 전까지 원본을 thumb 로 재사용)
 export async function makeThumbnailWebp(bytes: Uint8Array): Promise<Uint8Array> {
   return bytes;
 }
 
 /**
- * ARK_BASE_URL 정규화.
- * 값이 실수로 두 번 붙여넣어진 경우("https://a/api/v3https://a/api/v3")나
- * 경로가 중복된 경우("/api/v3/api/v3"), 끝 슬래시 등을 안전하게 정리한다.
+ * ARK_BASE_URL 은 이제 "완전한 이미지 생성 엔드포인트 URL"이다.
+ * (예: https://ark.ap-southeast.bytepluses.com/api/v3/images/generations)
+ * 비디오/헬스체크처럼 API 루트가 필요한 곳에서는 이 함수로 루트를 얻는다.
  */
 export function normalizeArkBaseUrl(raw: string): string {
   let v = raw.trim();
-  // 두 번째 스킴이 등장하면 마지막 URL만 사용
   const lastScheme = v.lastIndexOf("http");
   if (lastScheme > 0) v = v.slice(lastScheme);
   v = v.replace(/\/+$/, "");
-  // 경로 중복 제거 (/api/v3/api/v3 → /api/v3)
   v = v.replace(/(\/api\/v\d+)(\1)+$/, "$1");
+  // 풀 엔드포인트 URL 이 들어온 경우 API 루트만 남긴다.
+  v = v.replace(/\/(images|contents)\/generations?\/?$/i, "");
+  v = v.replace(/\/contents\/generations\/tasks\/?$/i, "");
   return v;
 }
 
+export function makePayload(params: {
+  prompt: string;
+  images?: string[];
+  size?: string;
+  aspectRatio?: string;
+  watermark?: boolean;
+}): Record<string, unknown> {
+  const { prompt, images, size = "2K", aspectRatio, watermark = false } = params;
+  const filteredImages = Array.isArray(images)
+    ? images.filter((s) => typeof s === "string" && s.trim())
+    : [];
+  return {
+    model: process.env.ARK_ENDPOINT_ID,
+    prompt,
+    image: filteredImages,
+    sequential_image_generation: "auto",
+    sequential_image_generation_options: { max_images: 1 },
+    response_format: "url",
+    size: aspectRatio ? aspectRatioToSize(aspectRatio) : size,
+    stream: false,
+    watermark,
+  };
+}
 
+export async function callSeedream(payload: Record<string, unknown>): Promise<any> {
+  const res = await fetch(process.env.ARK_BASE_URL!, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${process.env.ARK_API_KEY}`,
+    },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json().catch(() => null);
+  if (!res.ok) {
+    const err = new Error(`ARK_HTTP_${res.status}`) as Error & { status?: number; detail?: unknown };
+    err.status = res.status;
+    err.detail = data;
+    throw err;
+  }
+  return data; // { data: [{ url, size, ... }], ... }
+}
+
+/**
+ * 한 번의 ARK 호출. raw 응답과 파싱된 결과를 함께 돌려준다.
+ * (raw 응답은 generations.raw_responses 에 누적 저장된다)
+ */
 export async function callArk(params: {
   prompt: string;
-  /** 공인 서명 URL 또는 data:image/...;base64,... 문자열 */
-  imageUrls: string[];
+  /** data:image/...;base64,... 문자열 배열 */
+  images: string[];
   size: string;
-  seed?: number | null;
-  /** ARK sequential_image_generation 모드 (기본 disabled — 한 요청당 1장) */
-  sequentialMode?: "auto" | "disabled";
-  /** sequentialMode=auto 일 때 최대 생성 장수 */
-  maxImages?: number;
-  /** true 일 때만 payload 에 seed 를 포함한다(업로드 소스는 seed 미사용). */
-  sendSeed?: boolean;
-  /** Kept for backward-compat but ignored — the handler now issues one ARK call per seed to produce real variation. */
-  batchCount?: number;
-}): Promise<ArkResult[]> {
-  const ARK_API_KEY = process.env.ARK_API_KEY;
-  const ARK_BASE_URL = process.env.ARK_BASE_URL;
-  const ARK_ENDPOINT_ID = process.env.ARK_ENDPOINT_ID;
-  if (!ARK_API_KEY || !ARK_BASE_URL || !ARK_ENDPOINT_ID) {
-    throw new Error("ARK 시크릿이 설정되지 않았습니다.");
-  }
-
-  // 업로드 소스(V21.7 STABLE)의 makePayload() 와 동일한 형태로 전송한다.
-  //   model, prompt, image[], response_format, size, watermark,
-  //   sequential_image_generation, sequential_image_generation_options, stream
-  // (n / seed 는 업로드 소스에 없으므로 기본적으로 보내지 않는다.)
-  const sequentialMode = params.sequentialMode ?? "auto";
-  const url = `${normalizeArkBaseUrl(ARK_BASE_URL)}/images/generations`;
-  const payload: Record<string, unknown> = {
-    model: ARK_ENDPOINT_ID,
+  watermark?: boolean;
+}): Promise<{ results: ArkResult[]; raw: unknown }> {
+  const payload = makePayload({
     prompt: params.prompt,
-    response_format: "url",
+    images: params.images,
     size: params.size,
-    watermark: false,
-    sequential_image_generation: sequentialMode,
-    sequential_image_generation_options: {
-      max_images: Math.max(1, Math.min(4, params.maxImages ?? 1)),
-    },
-    stream: false,
-  };
-
-  if (params.imageUrls.length > 0) payload.image = params.imageUrls;
-  // seed 는 옵션(sendSeed)을 켠 경우에만 추가 — 업로드 소스는 seed 를 사용하지 않는다.
-  if (params.sendSeed && params.seed != null) payload.seed = params.seed;
-
-
-  const maxAttempts = 2;
-  let lastErr: unknown;
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 120_000);
-    try {
-      const res = await fetch(url, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${ARK_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-        signal: controller.signal,
-      });
-      clearTimeout(timeout);
-      const reqId = readArkRequestId(res.headers);
-
-      if (res.status === 429) {
-        throw new Error("ARK_RATE_LIMITED: 요청량 제한에 도달했습니다. 잠시 후 다시 시도해 주세요.");
-      }
-      if (!res.ok) {
-        const text = await res.text().catch(() => "");
-        const suffix = reqId ? ` [request_id=${reqId}]` : "";
-        if (text.includes("SensitiveContentDetected") || text.includes("ContentPolicy")) {
-          throw new Error(
-            `ARK_SENSITIVE_CONTENT: 프롬프트가 이미지 API의 콘텐츠 정책에 걸렸습니다. 표현을 순화해 다시 시도해 주세요.${suffix}`,
-          );
-        }
-        throw new Error(`ARK_HTTP_${res.status}: ${text.slice(0, 500)}${suffix}`);
-      }
-      // 응답이 비어 있거나 JSON 이 아닐 수 있으므로 text 로 읽고 안전하게 파싱한다.
-      const bodyText = await res.text();
-      if (!bodyText.trim()) {
-        throw new Error(
-          "ARK_EMPTY_RESPONSE: 이미지 API가 빈 응답을 반환했습니다. ARK 주소(ARK_BASE_URL) 설정을 확인해 주세요.",
-        );
-      }
-      let json: { id?: string; request_id?: string; data?: Array<{ url?: string; size?: string }> };
-      try {
-        json = JSON.parse(bodyText) as typeof json;
-      } catch {
-        throw new Error(`ARK_BAD_JSON: 이미지 API 응답을 해석할 수 없습니다. ${bodyText.slice(0, 200)}`);
-      }
-      const responseId = json.request_id ?? json.id ?? reqId ?? null;
-      const items = Array.isArray(json.data) ? json.data : [];
-      const results: ArkResult[] = [];
-      for (const it of items) {
-        if (typeof it?.url === "string" && /^https?:\/\//i.test(it.url)) {
-          const [w, h] = String(it.size ?? params.size).split("x").map((n) => Number(n) || undefined);
-          results.push({ url: it.url, width: w, height: h, requestId: responseId });
-        }
-      }
-      if (results.length === 0) throw new Error("ARK_NO_IMAGE: 결과 이미지 URL을 파싱할 수 없습니다.");
-      return results;
-    } catch (err) {
-      clearTimeout(timeout);
-      lastErr = err;
-      const msg = err instanceof Error ? err.message : String(err);
-      if (msg.startsWith("ARK_RATE_LIMITED")) throw err;
-      if (attempt < maxAttempts) {
-        await new Promise((r) => setTimeout(r, 500 * Math.pow(2, attempt - 1)));
-        continue;
-      }
+    watermark: params.watermark ?? false,
+  });
+  const raw = await callSeedream(payload);
+  const items = Array.isArray(raw?.data) ? (raw.data as Array<{ url?: string; size?: string }>) : [];
+  const results: ArkResult[] = [];
+  for (const it of items) {
+    if (typeof it?.url === "string" && /^https?:\/\//i.test(it.url)) {
+      const [w, h] = String(it.size ?? params.size)
+        .split("x")
+        .map((n) => Number(n) || undefined);
+      results.push({ url: it.url, width: w, height: h });
     }
   }
-  throw lastErr instanceof Error ? lastErr : new Error("ARK_UNKNOWN_ERROR");
+  return { results, raw };
 }
