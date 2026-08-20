@@ -3,7 +3,55 @@
 
 export type AspectRatio = "9:16" | "16:9" | "1:1" | "4:3" | "3:4" | "21:9" | "9:21";
 
-// aspectRatio → size 매핑 (원본 규칙 준수: 최소 3,686,400px 이상 + 16의 배수)
+// 최소 픽셀 수(3,686,400px) 이상 + 16의 배수로 맞춘 동적 해상도 계산기.
+// 프리셋 비율은 물론 "5:4" 같은 커스텀 비율 문자열도 지원한다.
+const MIN_PIXELS = 3_686_400;
+const MAX_SIDE = 4320;
+
+function round16(n: number): number {
+  return Math.max(16, Math.round(n / 16) * 16);
+}
+
+/** "W:H" (또는 "W/H", "W x H") 문자열을 비율 숫자로 파싱한다. */
+export function parseAspectRatio(ar?: string): { w: number; h: number } | null {
+  if (!ar) return null;
+  const m = /^\s*(\d+(?:\.\d+)?)\s*[:/x×]\s*(\d+(?:\.\d+)?)\s*$/i.exec(ar);
+  if (!m) return null;
+  const w = Number(m[1]);
+  const h = Number(m[2]);
+  if (!w || !h) return null;
+  return { w, h };
+}
+
+/** 비율에 맞춰 최소 픽셀 수를 만족하는 16의 배수 해상도를 계산한다. */
+export function computeSizeFromRatio(w: number, h: number): string {
+  const ratio = w / h;
+  // width = sqrt(MIN_PIXELS * ratio)
+  let width = Math.sqrt(MIN_PIXELS * ratio);
+  let height = width / ratio;
+  // 16의 배수로 올림 정렬 후 최소 픽셀 미달이면 조금씩 키운다.
+  let W = round16(width);
+  let H = round16(height);
+  let guard = 0;
+  while (W * H < MIN_PIXELS && guard++ < 64) {
+    width *= 1.01;
+    height = width / ratio;
+    W = round16(width);
+    H = round16(height);
+  }
+  // 과도한 장변 제한
+  if (W > MAX_SIDE) {
+    W = round16(MAX_SIDE);
+    H = round16(W / ratio);
+  }
+  if (H > MAX_SIDE) {
+    H = round16(MAX_SIDE);
+    W = round16(H * ratio);
+  }
+  return `${W}x${H}`;
+}
+
+// aspectRatio → size 매핑 (검증된 프리셋은 고정값, 그 외는 동적 계산)
 export function aspectRatioToSize(ar?: string): string {
   switch (ar) {
     case "9:16":
@@ -20,10 +68,14 @@ export function aspectRatioToSize(ar?: string): string {
       return "4320x1856";
     case "9:21":
       return "1856x4320";
-    default:
+    default: {
+      const parsed = parseAspectRatio(ar);
+      if (parsed) return computeSizeFromRatio(parsed.w, parsed.h);
       return "2880x2880"; // 안전 기본값 (문자열 '2K' 반환 금지)
+    }
   }
 }
+
 
 export type ArkResult = { url: string; width?: number; height?: number; requestId?: string | null };
 
@@ -71,9 +123,14 @@ export function normalizeArkBaseUrl(raw: string): string {
 
 export async function callArk(params: {
   prompt: string;
+  /** 공인 서명 URL 또는 data:image/...;base64,... 문자열 */
   imageUrls: string[];
   size: string;
   seed?: number | null;
+  /** ARK sequential_image_generation 모드 (기본 disabled — 한 요청당 1장) */
+  sequentialMode?: "auto" | "disabled";
+  /** sequentialMode=auto 일 때 최대 생성 장수 */
+  maxImages?: number;
   /** Kept for backward-compat but ignored — the handler now issues one ARK call per seed to produce real variation. */
   batchCount?: number;
 }): Promise<ArkResult[]> {
@@ -84,6 +141,7 @@ export async function callArk(params: {
     throw new Error("ARK 시크릿이 설정되지 않았습니다.");
   }
 
+  const sequentialMode = params.sequentialMode ?? "disabled";
   const url = `${normalizeArkBaseUrl(ARK_BASE_URL)}/images/generations`;
   const payload: Record<string, unknown> = {
     model: ARK_ENDPOINT_ID,
@@ -92,7 +150,15 @@ export async function callArk(params: {
     size: params.size,
     watermark: false,
     n: 1,
+    // 업로드 소스(V21.7)와 동일하게 순차 생성 동작을 명시한다.
+    sequential_image_generation: sequentialMode,
   };
+  if (sequentialMode === "auto") {
+    payload.sequential_image_generation_options = {
+      max_images: Math.max(1, Math.min(4, params.maxImages ?? 1)),
+    };
+  }
+
   if (params.imageUrls.length > 0) payload.image = params.imageUrls;
   if (params.seed != null) payload.seed = params.seed;
 
