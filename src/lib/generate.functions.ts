@@ -84,6 +84,10 @@ export const generate = createServerFn({ method: "POST" })
     // 2) 프롬프트 정리 및 가드
     let cleanPrompt: string;
     if (data.rawPassthrough) {
+      const banned = checkBannedTokens(data.finalPrompt);
+      if (banned) {
+        throw new Error(`PROMPT_POLICY_VIOLATION_LOCAL: ${banned}`);
+      }
       cleanPrompt = data.finalPrompt;
     } else {
       cleanPrompt = sanitizePrompt(data.finalPrompt);
