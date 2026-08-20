@@ -12,5 +12,14 @@ export function generateErrorKey(message: string): string | null {
   if (message.includes("ARK_HTTP_401") || message.includes("ARK_HTTP_403"))
     return "studio.errors.auth_failed";
   if (message.startsWith("ARK_HTTP_")) return "studio.errors.api_failed";
+  if (
+    message.includes("fetch failed") ||
+    message.includes("ENOTFOUND") ||
+    message.includes("ECONNRESET") ||
+    message.includes("ECONNREFUSED") ||
+    message.includes("ETIMEDOUT") ||
+    message.includes("ARK_BASE_URL_MISSING")
+  )
+    return "studio.errors.network_failed";
   return null;
 }
