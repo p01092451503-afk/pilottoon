@@ -44,7 +44,7 @@ export function AppSidebar() {
       items: [
         { title: t("sidebar.hub"), url: "/studio", icon: LayoutGrid },
         { title: t("sidebar.make"), url: "/make", icon: ImagePlus },
-        { title: t("sidebar.studio"), url: "/generate", icon: ImageIcon },
+
 
       ],
     },
