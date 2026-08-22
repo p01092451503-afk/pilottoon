@@ -393,6 +393,41 @@ function Workspace({
   const [lineItems, setLineItems] = useState<string[]>([]);
   const fileInput = useRef<HTMLInputElement | null>(null);
 
+  // 에피소드 패널 연결 컨텍스트
+  const panelCtxFn = useServerFn(getPanelContext);
+  const panelCtx = useQuery({
+    queryKey: ["panel-context", panelId],
+    enabled: !!panelId,
+    queryFn: () => panelCtxFn({ data: { panel_id: panelId! } }),
+  });
+  const appliedPanel = useRef<string | null>(null);
+
+  // 패널 캡션 + 캐스트 참조 이미지를 최초 1회 자동 적용
+  useEffect(() => {
+    const ctx = panelCtx.data;
+    if (!panelId || !ctx || appliedPanel.current === panelId) return;
+    appliedPanel.current = panelId;
+    const patch: Partial<TabState> = {};
+    if (!tab.prompt.trim() && ctx.panel.caption) patch.prompt = ctx.panel.caption;
+    const castRefs: RefImage[] = ctx.cast
+      .filter((c) => !!c.primary_path)
+      .slice(0, 2)
+      .map((c) => ({
+        id: crypto.randomUUID(),
+        path: c.primary_path as string,
+        name: c.display_name,
+        areas: [],
+      }));
+    if (castRefs.length && tab.refs.length === 0) {
+      patch.refs = castRefs;
+      patch.charA = castRefs[0]?.id ?? null;
+      if (castRefs[1]) patch.charB = castRefs[1].id;
+    }
+    if (Object.keys(patch).length) onChange(patch);
+  }, [panelId, panelCtx.data, tab.prompt, tab.refs.length, onChange]);
+
+
+
   const history = useQuery({
     queryKey: ["make-history", tenantId, gen.row?.status, gen.currentId],
     enabled: !!tenantId,
