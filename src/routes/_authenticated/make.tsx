@@ -663,7 +663,11 @@ function Workspace({
 
           {/* 프롬프트 */}
           <div className="lg:col-span-2">
-            <SectionTitle>{t("make.prompt")}</SectionTitle>
+            <div className="mb-2 flex items-center gap-2">
+              <SectionTitle>{t("make.prompt")}</SectionTitle>
+              <InfoTip text={t("make.prompt_tip")} />
+            </div>
+
             <AutoResizeTextarea
               minHeight={120}
               maxHeight={520}
