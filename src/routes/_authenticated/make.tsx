@@ -692,7 +692,7 @@ function Workspace({
                 <ImageDownloadMenu
                   bucket="generation-outputs"
                   path={r.storage_path}
-                  filename={`pilottoon-${r.id}`}
+                  baseName={`pilottoon-${r.id}`}
                 />
               </div>
             </div>
