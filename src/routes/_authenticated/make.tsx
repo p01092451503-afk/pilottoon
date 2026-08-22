@@ -22,6 +22,7 @@ import { SignedImage } from "@/components/SignedImage";
 import { ImageDownloadMenu } from "@/components/image-download-menu";
 import { ImageLightbox, type LightboxItem } from "@/components/image-lightbox";
 import { AutoResizeTextarea } from "@/components/auto-resize-textarea";
+import { ImageModelHealthCard } from "@/components/image-model-health-card";
 import { generateErrorKey } from "@/lib/generate-error";
 import type { PromptConfig } from "@/lib/promptEngine";
 import { Button } from "@/components/ui/button";
@@ -154,6 +155,10 @@ function MakePage() {
 
   return (
     <main className="w-full px-4 py-4">
+      <div className="mb-4">
+        <ImageModelHealthCard />
+      </div>
+
       {/* 페이지 탭 */}
       <div className="flex items-center gap-1 border-b border-border pb-2">
         {tabs.map((tab, i) => (
