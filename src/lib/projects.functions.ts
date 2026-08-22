@@ -182,8 +182,10 @@ export const getEpisode = createServerFn({ method: "GET" })
   .inputValidator((d) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     const { data: episode, error: eErr } = await context.supabase
-      .from("episodes").select("id, title, order_index, project_id, projects(id, title)").eq("id", data.id).single();
+      .from("episodes").select("id, title, order_index, project_id, cover_result_id, projects(id, title)").eq("id", data.id).single();
     if (eErr) throw new Error(eErr.message);
+
+    await reconcilePanelStatuses(context.supabase, data.id);
 
     const [{ data: panels, error: pErr }, { data: cast, error: cErr }] = await Promise.all([
       context.supabase
