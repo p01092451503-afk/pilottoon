@@ -20,6 +20,8 @@ export type Database = {
           created_at: string
           id: string
           is_primary: boolean
+          kind: string
+          label: string | null
           seq: number
           storage_path: string
         }
@@ -28,6 +30,8 @@ export type Database = {
           created_at?: string
           id?: string
           is_primary?: boolean
+          kind?: string
+          label?: string | null
           seq?: number
           storage_path: string
         }
@@ -36,6 +40,8 @@ export type Database = {
           created_at?: string
           id?: string
           is_primary?: boolean
+          kind?: string
+          label?: string | null
           seq?: number
           storage_path?: string
         }
@@ -53,22 +59,31 @@ export type Database = {
         Row: {
           created_at: string
           created_by: string | null
+          description: string | null
           display_name: string
+          group_name: string | null
           id: string
+          tags: string[]
           tenant_id: string
         }
         Insert: {
           created_at?: string
           created_by?: string | null
+          description?: string | null
           display_name: string
+          group_name?: string | null
           id?: string
+          tags?: string[]
           tenant_id: string
         }
         Update: {
           created_at?: string
           created_by?: string | null
+          description?: string | null
           display_name?: string
+          group_name?: string | null
           id?: string
+          tags?: string[]
           tenant_id?: string
         }
         Relationships: [
