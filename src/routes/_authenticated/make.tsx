@@ -354,10 +354,11 @@ function MakePage() {
         )}
       </div>
 
-      {tabs.map((tab) => (
+      {tabs.map((tab, i) => (
         <div key={tab.id} className={tab.id === active ? "block" : "hidden"}>
           <Workspace
             tab={tab}
+            panelId={i === 0 ? (search.panel ?? null) : null}
             onChange={(patch) =>
               setTabs((p) => p.map((x) => (x.id === tab.id ? { ...x, ...patch } : x)))
             }
@@ -373,10 +374,13 @@ function MakePage() {
 function Workspace({
   tab,
   onChange,
+  panelId = null,
 }: {
   tab: TabState;
   onChange: (patch: Partial<TabState>) => void;
+  panelId?: string | null;
 }) {
+
   const { t, i18n } = useTranslation();
   const { tenantId } = useTenant();
   const { data: cfg = {} as PromptConfig } = usePresets(tenantId);
