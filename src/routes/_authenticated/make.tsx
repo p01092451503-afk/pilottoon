@@ -412,10 +412,11 @@ function Workspace({
     appliedPanel.current = panelId;
     const patch: Partial<TabState> = {};
     if (!tab.prompt.trim() && ctx.panel.caption) patch.prompt = ctx.panel.caption;
-    const castRefs: RefImage[] = ctx.cast
+    const castRefs: RefImage[] = (ctx.cast as Array<{ primary_path: string | null; display_name: string }>)
       .filter((c) => !!c.primary_path)
       .slice(0, 2)
       .map((c) => ({
+
         id: crypto.randomUUID(),
         path: c.primary_path as string,
         name: c.display_name,
