@@ -497,6 +497,12 @@
     "delete_confirm": "Delete the selected images?",
     "deleted_toast": "Deleted {{n}} image(s)",
     "ref_added_toast": "Added {{n}} image(s) as references",
+    "card_use_as_ref": "Use as reference",
+    "card_edit_image": "Edit image",
+    "clear_line": "Clear list",
+    "line_cleared_toast": "Cleared the current list",
+    "restored_toast": "Restored settings from this generation",
+    "restore_failed": "Could not load this generation",
     "work_tab": "Work {{n}}",
 
     "add_tab": "Add work tab",

@@ -461,6 +461,68 @@ function Workspace({
   );
 
 
+  // 카드 단위: 첫 번째 결과 이미지를 레퍼런스로 추가
+  const useFirstResultAsRef = useCallback(
+    async (paths: string[]) => {
+      const first = paths.find(Boolean);
+      if (!first) return;
+      await useResultsAsRefs([first]);
+    },
+    [useResultsAsRefs],
+  );
+
+  // 카드 단위: 저장된 옵션/레퍼런스 스냅샷으로 현재 탭 복원 (이미지 수정)
+  const restoreGeneration = useCallback(
+    async (generationId: string) => {
+      const { data, error } = await supabase
+        .from("generations")
+        .select("options, reference_files, raw_prompt, final_prompt, user_memo")
+        .eq("id", generationId)
+        .maybeSingle();
+      if (error || !data) {
+        toast.error(error?.message ?? t("make.restore_failed"));
+        return;
+      }
+      const opts = (data.options ?? {}) as Record<string, unknown>;
+      const files = Array.isArray(data.reference_files)
+        ? (data.reference_files as Array<Record<string, unknown>>)
+        : [];
+      const refs: RefImage[] = files
+        .filter((f) => typeof f.file === "string")
+        .slice(0, MAX_REFS)
+        .map((f) => ({
+          id: crypto.randomUUID(),
+          path: String(f.file),
+          name: String(f.file).split("/").pop() ?? "ref",
+          areas: [],
+        }));
+      const roleAt = (role: string) => files.findIndex((f) => f.role === role);
+      const idxA = roleAt("charA");
+      const idxB = roleAt("charB");
+      const str = (k: string) => (typeof opts[k] === "string" ? (opts[k] as string) : NONE);
+      onChange({
+        refs,
+        charA: idxA >= 0 ? (refs[idxA]?.id ?? null) : null,
+        charB: idxB >= 0 ? (refs[idxB]?.id ?? null) : null,
+        prompt: (data.raw_prompt as string | null) ?? "",
+        memo: (data.user_memo as string | null) ?? "",
+        aspectRatio:
+          typeof opts.aspectRatio === "string" ? (opts.aspectRatio as string) : tab.aspectRatio,
+        emotionId: str("emotionId"),
+        styleFinishId: str("styleFinishId"),
+        bgStyleId: str("bgStyleId"),
+        cameraAngleId: str("cameraAngleId"),
+        cameraDistanceId: str("cameraDistanceId"),
+        cameraPositionId: str("cameraPositionId"),
+        focusTargetId: str("focusTargetId"),
+        poseStrengthId: str("poseStrengthId"),
+        bgStrengthId: str("bgStrengthId"),
+      });
+      toast.success(t("make.restored_toast"));
+    },
+    [onChange, t, tab.aspectRatio],
+  );
+
   // 붙여넣기 업로드
   useEffect(() => {
     function onPaste(e: ClipboardEvent) {
@@ -558,7 +620,19 @@ function Workspace({
         imagePaths,
         referenceRoles,
         figureMap: engine.figureMap,
-        options: { aspectRatio: tab.aspectRatio, source: "make" },
+        options: {
+          aspectRatio: tab.aspectRatio,
+          source: "make",
+          emotionId: tab.emotionId,
+          styleFinishId: tab.styleFinishId,
+          bgStyleId: tab.bgStyleId,
+          cameraAngleId: tab.cameraAngleId,
+          cameraDistanceId: tab.cameraDistanceId,
+          cameraPositionId: tab.cameraPositionId,
+          focusTargetId: tab.focusTargetId,
+          poseStrengthId: tab.poseStrengthId,
+          bgStrengthId: tab.bgStrengthId,
+        },
         batchCount: tab.count,
         conflictWarnings: engine.warnings,
         userMemo: tab.memo || undefined,
@@ -603,7 +677,9 @@ function Workspace({
           locale={i18n.language}
           onUseAsRef={useResultsAsRefs}
           onDeleted={() => void history.refetch()}
-
+          onCardUseAsRef={useFirstResultAsRef}
+          onEditImage={restoreGeneration}
+          onClearLine={() => setLineItems([])}
         />
       </aside>
 
@@ -1139,6 +1215,9 @@ function SideList({
   locale,
   onUseAsRef,
   onDeleted,
+  onCardUseAsRef,
+  onEditImage,
+  onClearLine,
 }: {
   lineRows: HistoryRow[];
   allRows: HistoryRow[];
@@ -1148,6 +1227,9 @@ function SideList({
   locale: string;
   onUseAsRef: (paths: string[]) => Promise<void>;
   onDeleted: () => void;
+  onCardUseAsRef: (paths: string[]) => Promise<void>;
+  onEditImage: (generationId: string) => Promise<void>;
+  onClearLine: () => void;
 }) {
   const { t } = useTranslation();
   const [tab, setTab] = useState<"line" | "history">("line");
@@ -1196,7 +1278,22 @@ function SideList({
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between border-b border-border px-3 py-2">
-        <div className="flex gap-1">
+        <div className="flex items-center gap-1">
+          {tab === "line" && (
+            <button
+              type="button"
+              aria-label={t("make.clear_line")}
+              title={t("make.clear_line")}
+              disabled={!lineRows.length}
+              onClick={() => {
+                onClearLine();
+                toast.success(t("make.line_cleared_toast"));
+              }}
+              className="rounded p-1 text-muted-foreground hover:bg-muted disabled:opacity-40"
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+            </button>
+          )}
           {(["line", "history"] as const).map((k) => (
             <button
               key={k}
@@ -1339,6 +1436,47 @@ function SideList({
 
               </div>
             )}
+            <div className="mt-2 flex gap-1.5">
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                className="h-7 flex-1 text-[11px]"
+                disabled={busy || !r.generation_results.some((g) => g.storage_path)}
+                onClick={async () => {
+                  const first = r.generation_results
+                    .slice()
+                    .sort((a, b) => a.seq - b.seq)
+                    .find((g) => g.storage_path)?.storage_path;
+                  if (!first) return;
+                  setBusy(true);
+                  try {
+                    await onCardUseAsRef([first]);
+                  } finally {
+                    setBusy(false);
+                  }
+                }}
+              >
+                {t("make.card_use_as_ref")}
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="h-7 flex-1 text-[11px]"
+                disabled={busy}
+                onClick={async () => {
+                  setBusy(true);
+                  try {
+                    await onEditImage(r.id);
+                  } finally {
+                    setBusy(false);
+                  }
+                }}
+              >
+                {t("make.card_edit_image")}
+              </Button>
+            </div>
           </article>
         ))}
       </div>
