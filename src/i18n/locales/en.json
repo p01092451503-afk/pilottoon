@@ -67,10 +67,6 @@
       "title": "Character library",
       "sub": "Manage the characters used in your generations"
     },
-    "generate": {
-      "title": "Image studio",
-      "sub": "Video generation"
-    },
     "history": {
       "title": "History",
       "sub": "Recent results and options"
@@ -86,6 +82,10 @@
     "usage": {
       "title": "API usage",
       "sub": "Estimated vs. recorded usage"
+    },
+    "make": {
+      "title": "Make",
+      "sub": "Image generation"
     }
   },
   "auth": {
