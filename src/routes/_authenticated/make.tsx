@@ -12,7 +12,11 @@ import {
   Loader2,
   Maximize2,
   RotateCcw,
+  Info,
+  Trash2,
+  CheckSquare,
 } from "lucide-react";
+
 
 import { supabase } from "@/integrations/supabase/client";
 import { useTenant } from "@/hooks/useTenant";
