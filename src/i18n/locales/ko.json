@@ -178,7 +178,15 @@
     "generate": "생성",
     "loading_variants": "변형 불러오는 중…",
     "no_variants": "아직 변형이 없습니다.",
-    "panel_updated_toast": "컷이 업데이트되었습니다"
+    "panel_updated_toast": "컷이 업데이트되었습니다",
+    "view_timeline": "타임라인",
+    "view_grid": "그리드",
+    "download_zip": "ZIP 다운로드",
+    "zip_empty": "내려받을 확정 이미지가 없어요.",
+    "zip_done": "ZIP 다운로드를 시작했어요.",
+    "set_cover": "커버로 지정",
+    "cover_current": "현재 커버",
+    "cover_set_toast": "에피소드 커버를 변경했어요."
   },
   "characters": {
     "eyebrow": "라이브러리",
