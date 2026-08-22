@@ -410,8 +410,6 @@ function Workspace({
     return () => window.removeEventListener("paste", onPaste);
   }, [uploadFiles]);
 
-  const pick = (sheet: string, id: string) =>
-    id === NONE ? null : (cfg[sheet] ?? []).find((i) => i.id === id) ?? null;
 
   // ── 정식 프롬프트 엔진 (Figure 순서: Character A → Character B → Background → Pose) ──
   const engine = useMemo(() => {
