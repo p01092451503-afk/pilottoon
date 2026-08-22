@@ -483,6 +483,8 @@
   },
   "make": {
     "auto_applied": "Camera presets were applied automatically",
+    "position_requires_character": "Select Character A or B first",
+
     "auto_preset": "Camera auto-setup",
     "auto_preset_hint": "Choosing a composition also sets distance, position and focus.",
     "prompt_tip": "Describe the scene you want. Use @image1 to point at a reference image.",
