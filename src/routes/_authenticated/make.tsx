@@ -472,6 +472,9 @@ function Workspace({
           thumbSize={thumbSize}
           onZoom={(d) => setThumbSize((s) => Math.min(3, Math.max(1, s + d)))}
           locale={i18n.language}
+          onUseAsRef={useResultsAsRefs}
+          onDeleted={() => void history.refetch()}
+
         />
       </aside>
 
