@@ -1436,6 +1436,47 @@ function SideList({
 
               </div>
             )}
+            <div className="mt-2 flex gap-1.5">
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                className="h-7 flex-1 text-[11px]"
+                disabled={busy || !r.generation_results.some((g) => g.storage_path)}
+                onClick={async () => {
+                  const first = r.generation_results
+                    .slice()
+                    .sort((a, b) => a.seq - b.seq)
+                    .find((g) => g.storage_path)?.storage_path;
+                  if (!first) return;
+                  setBusy(true);
+                  try {
+                    await onCardUseAsRef([first]);
+                  } finally {
+                    setBusy(false);
+                  }
+                }}
+              >
+                {t("make.card_use_as_ref")}
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="h-7 flex-1 text-[11px]"
+                disabled={busy}
+                onClick={async () => {
+                  setBusy(true);
+                  try {
+                    await onEditImage(r.id);
+                  } finally {
+                    setBusy(false);
+                  }
+                }}
+              >
+                {t("make.card_edit_image")}
+              </Button>
+            </div>
           </article>
         ))}
       </div>
