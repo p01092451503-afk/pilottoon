@@ -327,6 +327,21 @@
     "load_settings": "Load settings",
     "restore_toast": "Options will be restored on the studio page",
     "restore_fail": "Failed to save restore data",
+    "export": {
+      "button": "Export to episode",
+      "title": "Export to project / episode",
+      "desc": "Adds the selected image as a new panel in an episode.",
+      "project": "Project",
+      "episode": "Episode",
+      "choose_project": "Choose a project",
+      "choose_episode": "Choose an episode",
+      "caption": "Panel caption (optional)",
+      "submit": "Add as panel",
+      "no_projects": "No projects yet. Create one first.",
+      "no_episodes": "No episodes in this project.",
+      "success": "Added to the episode as a new panel",
+      "open_episode": "Open storyboard"
+    },
     "meta": {
       "mode": "Mode",
       "ratio": "Ratio",

@@ -6,6 +6,7 @@ import { useTenant } from "@/hooks/useTenant";
 import { SignedImage } from "@/components/SignedImage";
 import { ImageDownloadMenu } from "@/components/image-download-menu";
 import { ImageLightbox } from "@/components/image-lightbox";
+import { ExportToEpisodeDialog } from "@/components/export-to-episode-dialog";
 import { SignedVideo } from "@/components/SignedVideo";
 import { Button } from "@/components/ui/button";
 import { IconTooltip } from "@/components/icon-tooltip";
@@ -677,7 +678,7 @@ function DetailCard({ row, onClose, locale }: { row: Row; onClose: () => void; l
                       size="icon"
                       variant="secondary"
                     />
-                    <div className="border-t border-border bg-background/80 p-2">
+                    <div className="space-y-2 border-t border-border bg-background/80 p-2">
                       <ImageDownloadMenu
                         bucket="generation-outputs"
                         path={res.storage_path}
@@ -686,6 +687,11 @@ function DetailCard({ row, onClose, locale }: { row: Row; onClose: () => void; l
                         buttonClassName="w-full"
                         size="sm"
                         variant="outline"
+                      />
+                      <ExportToEpisodeDialog
+                        resultId={res.id}
+                        defaultCaption={row.raw_prompt ?? row.work_label}
+                        className="w-full rounded-xl"
                       />
                     </div>
                   </>
