@@ -9,6 +9,7 @@ import {
   addCastMember, removeCastMember,
 } from "@/lib/projects.functions";
 import { useCharacters } from "@/hooks/useCharacters";
+import { SignedImage } from "@/components/SignedImage";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { IconTooltip } from "@/components/icon-tooltip";
