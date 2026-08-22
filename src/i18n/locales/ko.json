@@ -52,7 +52,8 @@
     "group_studio": "스튜디오",
     "group_records": "기록",
     "usage": "API 사용량",
-    "make": "만들기"
+    "make": "만들기",
+    "settings": "설정"
   },
   "header": {
     "projects": {
@@ -86,6 +87,10 @@
     "make": {
       "title": "만들기",
       "sub": "이미지 생성"
+    },
+    "settings": {
+      "title": "설정",
+      "sub": "계정, 언어, API 연결 상태"
     }
   },
   "auth": {
@@ -484,7 +489,6 @@
   "make": {
     "auto_applied": "카메라 프리셋이 자동으로 설정되었습니다",
     "position_requires_character": "캐릭터 A 또는 B를 먼저 선택하세요",
-
     "auto_preset": "카메라 자동 설정",
     "auto_preset_hint": "구도를 선택하면 거리·위치·포커스가 함께 맞춰집니다.",
     "prompt_tip": "만들고 싶은 장면을 문장으로 적어주세요. @image1 처럼 입력하면 해당 레퍼런스 이미지를 가리킵니다.",
@@ -504,7 +508,6 @@
     "restored_toast": "해당 생성의 설정을 불러왔습니다",
     "restore_failed": "생성 정보를 불러오지 못했습니다",
     "work_tab": "작업 {{n}}",
-
     "add_tab": "작업 추가",
     "refs": "레퍼런스 이미지",
     "upload_from_pc": "컴퓨터에서 업로드",
@@ -558,5 +561,16 @@
       "prop": "소품",
       "etc": "기타"
     }
+  },
+  "settings": {
+    "account_title": "계정",
+    "account_desc": "로그인한 계정 정보를 확인하고 로그아웃할 수 있어요.",
+    "email": "이메일",
+    "user_id": "사용자 ID",
+    "language_title": "언어",
+    "language_desc": "인터페이스 표시 언어를 선택하세요.",
+    "api_title": "API 연결 상태",
+    "api_desc": "이미지 생성 모델(Seedream) 연결 상태를 확인합니다.",
+    "api_hint": "API 키는 보안을 위해 서버에만 저장됩니다. 키를 변경하려면 채팅에서 키 변경을 요청해 주세요."
   }
 }

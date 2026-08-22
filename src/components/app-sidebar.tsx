@@ -1,6 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import { Users, ImagePlus, History, FolderKanban, Search, LayoutGrid, Wallet } from "lucide-react";
+import { Users, ImagePlus, History, FolderKanban, Search, LayoutGrid, Wallet, Settings } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import {
@@ -53,6 +53,7 @@ export function AppSidebar() {
       items: [
         { title: t("sidebar.history"), url: "/history", icon: History },
         { title: t("sidebar.usage"), url: "/usage", icon: Wallet },
+        { title: t("sidebar.settings"), url: "/settings", icon: Settings },
       ],
     },
   ] as const;

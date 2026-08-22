@@ -52,7 +52,8 @@
     "group_studio": "Studios",
     "group_records": "Records",
     "usage": "API usage",
-    "make": "Make"
+    "make": "Make",
+    "settings": "Settings"
   },
   "header": {
     "projects": {
@@ -86,6 +87,10 @@
     "make": {
       "title": "Make",
       "sub": "Image generation"
+    },
+    "settings": {
+      "title": "Settings",
+      "sub": "Account, language and API connection"
     }
   },
   "auth": {
@@ -484,7 +489,6 @@
   "make": {
     "auto_applied": "Camera presets were applied automatically",
     "position_requires_character": "Select Character A or B first",
-
     "auto_preset": "Camera auto-setup",
     "auto_preset_hint": "Choosing a composition also sets distance, position and focus.",
     "prompt_tip": "Describe the scene you want. Use @image1 to point at a reference image.",
@@ -504,7 +508,6 @@
     "restored_toast": "Restored settings from this generation",
     "restore_failed": "Could not load this generation",
     "work_tab": "Work {{n}}",
-
     "add_tab": "Add work tab",
     "refs": "Reference images",
     "upload_from_pc": "Upload from computer",
@@ -558,5 +561,16 @@
       "prop": "Props",
       "etc": "Other"
     }
+  },
+  "settings": {
+    "account_title": "Account",
+    "account_desc": "Review your signed-in account and sign out.",
+    "email": "Email",
+    "user_id": "User ID",
+    "language_title": "Language",
+    "language_desc": "Choose the interface language.",
+    "api_title": "API connection",
+    "api_desc": "Check the Seedream image model connection status.",
+    "api_hint": "API keys are stored on the server only. Ask in chat to update them."
   }
 }
