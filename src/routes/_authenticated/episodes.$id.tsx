@@ -6,8 +6,9 @@ import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import {
   getEpisode, createPanel, deletePanel, updatePanel,
-  reorderPanels, listPanelGenerations,
+  reorderPanels, listPanelGenerations, setEpisodeCover, listEpisodeExport,
 } from "@/lib/projects.functions";
+import { downloadEpisodeZip } from "@/lib/zip-download";
 import { SignedImage } from "@/components/SignedImage";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,7 @@ import { IconTooltip } from "@/components/icon-tooltip";
 import { IconBadge, SectionIcon } from "@/components/icon-badge";
 import {
   Plus, Trash2, GripVertical, Wand2, Check, ImageIcon, Loader2, ChevronDown,
+  Star, Download, LayoutGrid, List,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/episodes/$id")({
