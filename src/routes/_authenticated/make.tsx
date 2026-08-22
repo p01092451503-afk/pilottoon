@@ -1227,6 +1227,9 @@ function SideList({
   locale: string;
   onUseAsRef: (paths: string[]) => Promise<void>;
   onDeleted: () => void;
+  onCardUseAsRef: (paths: string[]) => Promise<void>;
+  onEditImage: (generationId: string) => Promise<void>;
+  onClearLine: () => void;
 }) {
   const { t } = useTranslation();
   const [tab, setTab] = useState<"line" | "history">("line");
