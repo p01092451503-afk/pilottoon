@@ -51,7 +51,8 @@
     "group_assets": "Assets",
     "group_studio": "Studios",
     "group_records": "Records",
-    "usage": "API usage"
+    "usage": "API usage",
+    "make": "Make"
   },
   "header": {
     "projects": {

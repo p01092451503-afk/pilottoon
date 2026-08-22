@@ -51,7 +51,8 @@
     "group_assets": "에셋",
     "group_studio": "스튜디오",
     "group_records": "기록",
-    "usage": "API 사용량"
+    "usage": "API 사용량",
+    "make": "만들기"
   },
   "header": {
     "projects": {

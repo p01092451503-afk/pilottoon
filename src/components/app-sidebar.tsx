@@ -1,6 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import { Users, History, FolderKanban, Search, LayoutGrid, Image as ImageIcon, Wallet } from "lucide-react";
+import { Users, ImagePlus, History, FolderKanban, Search, LayoutGrid, Image as ImageIcon, Wallet } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import {
