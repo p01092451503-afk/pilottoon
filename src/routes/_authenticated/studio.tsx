@@ -37,7 +37,7 @@ function StudioHub() {
 
       <div className="mx-auto mt-12 grid max-w-xl grid-cols-1 gap-6">
         <HubCard
-          to="/generate"
+          to="/make"
           icon={<ImageIcon className="h-6 w-6" strokeWidth={1.75} />}
           eyebrow="Seedream"
           title={t("hub.image_title")}
@@ -66,7 +66,7 @@ function HubCard({
   cta,
   bullets,
 }: {
-  to: "/generate";
+  to: "/make";
   icon: React.ReactNode;
   eyebrow: string;
   title: string;
