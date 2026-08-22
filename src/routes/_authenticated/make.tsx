@@ -1278,7 +1278,22 @@ function SideList({
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between border-b border-border px-3 py-2">
-        <div className="flex gap-1">
+        <div className="flex items-center gap-1">
+          {tab === "line" && (
+            <button
+              type="button"
+              aria-label={t("make.clear_line")}
+              title={t("make.clear_line")}
+              disabled={!lineRows.length}
+              onClick={() => {
+                onClearLine();
+                toast.success(t("make.line_cleared_toast"));
+              }}
+              className="rounded p-1 text-muted-foreground hover:bg-muted disabled:opacity-40"
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+            </button>
+          )}
           {(["line", "history"] as const).map((k) => (
             <button
               key={k}
