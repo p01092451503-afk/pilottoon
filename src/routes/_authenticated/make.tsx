@@ -723,12 +723,23 @@ function Workspace({
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
               <RefSelect
                 label={t("make.character_a")} refs={tab.refs}
-                value={tab.charA} onChange={(v) => onChange({ charA: v })}
+                value={tab.charA}
+                onChange={(v) => {
+                  const rule = cameraRuleFor(cfg, tab.cameraAngleId);
+                  const invalid = rule?.requiresTwo && !(v && tab.charB);
+                  onChange({ charA: v, ...(invalid ? { cameraAngleId: NONE } : {}) });
+                }}
               />
               <RefSelect
                 label={t("make.character_b")} refs={tab.refs}
-                value={tab.charB} onChange={(v) => onChange({ charB: v })}
+                value={tab.charB}
+                onChange={(v) => {
+                  const rule = cameraRuleFor(cfg, tab.cameraAngleId);
+                  const invalid = rule?.requiresTwo && !(v && tab.charA);
+                  onChange({ charB: v, ...(invalid ? { cameraAngleId: NONE } : {}) });
+                }}
               />
+
               <PresetField
                 label={t("make.composition")} sheet="CameraAngle" cfg={cfg}
                 value={tab.cameraAngleId}
