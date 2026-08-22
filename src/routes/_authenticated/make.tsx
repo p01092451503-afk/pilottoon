@@ -722,7 +722,31 @@ function Workspace({
 
   return (
     <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[280px_minmax(0,1fr)_minmax(320px,420px)]">
+      {panelId && panelCtx.data && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-primary/30 bg-primary-soft px-4 py-3 xl:col-span-3">
+          <div className="min-w-0 text-sm">
+            <div className="font-bold text-primary">
+              {t("make.panel_linked", {
+                episode: panelCtx.data.episode?.title ?? "",
+                n: (panelCtx.data.panel.order_index ?? 0) + 1,
+              })}
+            </div>
+            <div className="truncate text-xs text-muted-foreground">
+              {panelCtx.data.project?.title ?? ""}
+              {panelCtx.data.panel.caption ? ` · ${panelCtx.data.panel.caption}` : ""}
+            </div>
+          </div>
+          {panelCtx.data.episode && (
+            <Button asChild variant="outline" size="sm" className="rounded-xl">
+              <Link to="/episodes/$id" params={{ id: panelCtx.data.episode.id }}>
+                {t("make.back_to_storyboard")}
+              </Link>
+            </Button>
+          )}
+        </div>
+      )}
       {/* LNB : 라인 / 히스토리 */}
+
       <aside className="rounded-2xl border border-border bg-card">
         <SideList
           lineRows={lineRows}
