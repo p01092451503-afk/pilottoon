@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
+import { getPanelContext } from "@/lib/projects.functions";
+
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -62,7 +65,15 @@ import { cn } from "@/lib/utils";
 
 
 export const Route = createFileRoute("/_authenticated/make")({
+  validateSearch: (search: Record<string, unknown>): { panel?: string; back?: string } => {
+    const out: { panel?: string; back?: string } = {};
+    if (typeof search['panel'] === "string") out.panel = search['panel'] as string;
+    if (typeof search['back'] === "string") out.back = search['back'] as string;
+    return out;
+  },
+
   component: MakePage,
+
   head: () => ({
     meta: [
       { title: "만들기 · pilottoon" },
@@ -284,7 +295,9 @@ function newTab(): TabState {
 
 function MakePage() {
   const { t } = useTranslation();
+  const search = Route.useSearch();
   const [tabs, setTabs] = useState<TabState[]>(() => [newTab()]);
+
   const [activeId, setActiveId] = useState<string | null>(null);
   const active = activeId ?? tabs[0]!.id;
 
@@ -346,10 +359,11 @@ function MakePage() {
         )}
       </div>
 
-      {tabs.map((tab) => (
+      {tabs.map((tab, i) => (
         <div key={tab.id} className={tab.id === active ? "block" : "hidden"}>
           <Workspace
             tab={tab}
+            panelId={i === 0 ? (search.panel ?? null) : null}
             onChange={(patch) =>
               setTabs((p) => p.map((x) => (x.id === tab.id ? { ...x, ...patch } : x)))
             }
@@ -365,10 +379,13 @@ function MakePage() {
 function Workspace({
   tab,
   onChange,
+  panelId = null,
 }: {
   tab: TabState;
   onChange: (patch: Partial<TabState>) => void;
+  panelId?: string | null;
 }) {
+
   const { t, i18n } = useTranslation();
   const { tenantId } = useTenant();
   const { data: cfg = {} as PromptConfig } = usePresets(tenantId);
@@ -378,6 +395,42 @@ function Workspace({
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [lineItems, setLineItems] = useState<string[]>([]);
   const fileInput = useRef<HTMLInputElement | null>(null);
+
+  // 에피소드 패널 연결 컨텍스트
+  const panelCtxFn = useServerFn(getPanelContext);
+  const panelCtx = useQuery({
+    queryKey: ["panel-context", panelId],
+    enabled: !!panelId,
+    queryFn: () => panelCtxFn({ data: { panel_id: panelId! } }),
+  });
+  const appliedPanel = useRef<string | null>(null);
+
+  // 패널 캡션 + 캐스트 참조 이미지를 최초 1회 자동 적용
+  useEffect(() => {
+    const ctx = panelCtx.data;
+    if (!panelId || !ctx || appliedPanel.current === panelId) return;
+    appliedPanel.current = panelId;
+    const patch: Partial<TabState> = {};
+    if (!tab.prompt.trim() && ctx.panel.caption) patch.prompt = ctx.panel.caption;
+    const castRefs: RefImage[] = (ctx.cast as Array<{ primary_path: string | null; display_name: string }>)
+      .filter((c) => !!c.primary_path)
+      .slice(0, 2)
+      .map((c) => ({
+
+        id: crypto.randomUUID(),
+        path: c.primary_path as string,
+        name: c.display_name,
+        areas: [],
+      }));
+    if (castRefs.length && tab.refs.length === 0) {
+      patch.refs = castRefs;
+      patch.charA = castRefs[0]?.id ?? null;
+      if (castRefs[1]) patch.charB = castRefs[1].id;
+    }
+    if (Object.keys(patch).length) onChange(patch);
+  }, [panelId, panelCtx.data, tab.prompt, tab.refs.length, onChange]);
+
+
 
   const history = useQuery({
     queryKey: ["make-history", tenantId, gen.row?.status, gen.currentId],
@@ -636,6 +689,7 @@ function Workspace({
         batchCount: tab.count,
         conflictWarnings: engine.warnings,
         userMemo: tab.memo || undefined,
+        panelId: panelId ?? undefined,
       });
       if (res?.generationId) setLineItems((p) => [res.generationId, ...p]);
       if (res?.status === "error") {
@@ -644,8 +698,10 @@ function Workspace({
         toast.error(key ? t(key) : msg);
         return;
       }
-      toast.success(t("make.done_toast"));
+      toast.success(panelId ? t("make.panel_saved_toast") : t("make.done_toast"));
       void history.refetch();
+      if (panelId) void panelCtx.refetch();
+
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       const key = generateErrorKey(msg);
@@ -666,7 +722,31 @@ function Workspace({
 
   return (
     <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[280px_minmax(0,1fr)_minmax(320px,420px)]">
+      {panelId && panelCtx.data && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-primary/30 bg-primary-soft px-4 py-3 xl:col-span-3">
+          <div className="min-w-0 text-sm">
+            <div className="font-bold text-primary">
+              {t("make.panel_linked", {
+                episode: panelCtx.data.episode?.title ?? "",
+                n: (panelCtx.data.panel.order_index ?? 0) + 1,
+              })}
+            </div>
+            <div className="truncate text-xs text-muted-foreground">
+              {panelCtx.data.project?.title ?? ""}
+              {panelCtx.data.panel.caption ? ` · ${panelCtx.data.panel.caption}` : ""}
+            </div>
+          </div>
+          {panelCtx.data.episode && (
+            <Button asChild variant="outline" size="sm" className="rounded-xl">
+              <Link to="/episodes/$id" params={{ id: panelCtx.data.episode.id }}>
+                {t("make.back_to_storyboard")}
+              </Link>
+            </Button>
+          )}
+        </div>
+      )}
       {/* LNB : 라인 / 히스토리 */}
+
       <aside className="rounded-2xl border border-border bg-card">
         <SideList
           lineRows={lineRows}

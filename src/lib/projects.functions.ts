@@ -219,3 +219,49 @@ export const listPanelGenerations = createServerFn({ method: "GET" })
     return rows ?? [];
   });
 
+
+export const getPanelContext = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ panel_id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { data: panel, error: pErr } = await context.supabase
+      .from("panels")
+      .select("id, caption, order_index, status, episode_id, episodes(id, title, project_id, projects(id, title))")
+      .eq("id", data.panel_id)
+      .single();
+    if (pErr) throw new Error(pErr.message);
+
+    const episode: any = (panel as any).episodes;
+    const project: any = episode?.projects;
+
+    const { data: cast, error: cErr } = await context.supabase
+      .from("project_cast")
+      .select("character_id, role_label, characters(id, display_name, character_images(storage_path, is_primary, seq))")
+      .eq("project_id", episode?.project_id);
+    if (cErr) throw new Error(cErr.message);
+
+    const castNormalized = (cast ?? []).map((c: any) => {
+      const imgs = c.characters?.character_images ?? [];
+      const primary =
+        imgs.find((i: any) => i.is_primary)?.storage_path ??
+        imgs.slice().sort((a: any, b: any) => a.seq - b.seq)[0]?.storage_path ?? null;
+      return {
+        character_id: c.character_id,
+        display_name: c.characters?.display_name ?? "",
+        primary_path: primary as string | null,
+      };
+    });
+
+    return {
+      panel: {
+        id: panel.id,
+        caption: panel.caption,
+        order_index: panel.order_index,
+        status: panel.status,
+        episode_id: panel.episode_id,
+      },
+      episode: episode ? { id: episode.id, title: episode.title, project_id: episode.project_id } : null,
+      project: project ? { id: project.id, title: project.title } : null,
+      cast: castNormalized,
+    };
+  });
