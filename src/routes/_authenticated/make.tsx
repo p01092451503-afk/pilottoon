@@ -88,6 +88,73 @@ const AREA_EN: Record<string, string> = {
   etc: "other details",
 };
 
+/* 슬라이드 48 — 구도(앵글) 선택 시 거리/위치/포커스 자동 설정 규칙 */
+type CamRule = { angle: RegExp; distance?: RegExp; position?: RegExp; focus?: RegExp };
+const CAM_RULES: CamRule[] = [
+  {
+    angle: /close[- ]?up|클로즈업|얼굴/i,
+    distance: /close[- ]?up|클로즈업|근접/i,
+    position: /center|중앙|가운데/i,
+    focus: /face|얼굴/i,
+  },
+  {
+    angle: /bust|상반신|waist|허리/i,
+    distance: /medium|미디엄|중간|bust|상반신/i,
+    position: /center|중앙|가운데/i,
+    focus: /upper|상반신|face|얼굴/i,
+  },
+  {
+    angle: /full|전신|wide|long shot|롱샷|와이드/i,
+    distance: /full|전신|long|롱|wide|와이드/i,
+    position: /center|중앙|가운데/i,
+    focus: /full|전신|body|몸/i,
+  },
+  {
+    angle: /over[- ]?the[- ]?shoulder|오버숄더|숄더/i,
+    distance: /medium|미디엄|중간/i,
+    position: /side|측면|off[- ]?center|왼쪽|오른쪽/i,
+    focus: /face|얼굴/i,
+  },
+  {
+    angle: /low angle|앙각|로우앵글|high angle|부감|하이앵글|bird|top/i,
+    distance: /medium|미디엄|중간/i,
+    position: /center|중앙|가운데/i,
+    focus: /full|전신|body|몸/i,
+  },
+];
+
+function findPreset(cfg: PromptConfig, sheet: string, re: RegExp): string | null {
+  const item = (cfg[sheet] ?? []).find((i) =>
+    re.test(`${i.label_en ?? ""} ${i.label_ko ?? ""} ${i.prompt_text ?? ""}`),
+  );
+  return item?.id ?? null;
+}
+
+/** 선택한 구도에 맞춰 거리/위치/포커스를 자동 계산 */
+function autoCameraPatch(cfg: PromptConfig, angleId: string): Partial<TabState> {
+  if (angleId === NONE) return {};
+  const angle = (cfg["CameraAngle"] ?? []).find((i) => i.id === angleId);
+  if (!angle) return {};
+  const text = `${angle.label_en ?? ""} ${angle.label_ko ?? ""} ${angle.prompt_text ?? ""}`;
+  const rule = CAM_RULES.find((r) => r.angle.test(text));
+  if (!rule) return {};
+  const patch: Partial<TabState> = {};
+  if (rule.distance) {
+    const id = findPreset(cfg, "CameraDistance", rule.distance);
+    if (id) patch.cameraDistanceId = id;
+  }
+  if (rule.position) {
+    const id = findPreset(cfg, "CameraPosition", rule.position);
+    if (id) patch.cameraPositionId = id;
+  }
+  if (rule.focus) {
+    const id = findPreset(cfg, "FocusTarget", rule.focus);
+    if (id) patch.focusTargetId = id;
+  }
+  return patch;
+}
+
+
 type RefImage = { id: string; path: string; name: string; areas: string[] };
 
 type TabState = {
