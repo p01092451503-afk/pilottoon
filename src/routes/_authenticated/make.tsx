@@ -62,7 +62,12 @@ import { cn } from "@/lib/utils";
 
 
 export const Route = createFileRoute("/_authenticated/make")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    panel: typeof search['panel'] === "string" ? (search['panel'] as string) : undefined,
+    back: typeof search['back'] === "string" ? (search['back'] as string) : undefined,
+  }),
   component: MakePage,
+
   head: () => ({
     meta: [
       { title: "만들기 · pilottoon" },
