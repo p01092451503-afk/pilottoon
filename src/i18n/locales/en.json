@@ -140,7 +140,9 @@
     "empty_title": "No projects yet",
     "empty_hint": "Create your first project using the form above.",
     "created_toast": "Project created",
-    "deleted_toast": "Deleted"
+    "deleted_toast": "Deleted",
+    "stat_episodes": "{{count}} episodes",
+    "stat_panels": "{{count}} panels"
   },
   "project_detail": {
     "eyebrow": "Project",
@@ -157,7 +159,8 @@
     "role_placeholder": "Role (e.g. Protagonist)",
     "add_to_cast": "Add to cast",
     "cast_added_toast": "Cast added",
-    "create_character_first": "Create a character first →"
+    "create_character_first": "Create a character first →",
+    "panels": "panels"
   },
   "episodes": {
     "eyebrow": "Storyboard",
@@ -559,7 +562,6 @@
     "panel_saved_toast": "The result was saved to the storyboard panel.",
     "panel_linked": "Linked to {{episode}} · panel {{n}}",
     "back_to_storyboard": "Back to storyboard",
-
     "output": "Output",
     "output_empty": "No images generated yet.",
     "view": "Open viewer",

@@ -103,8 +103,22 @@ function ProjectDetail() {
               <li key={ep.id} className="flex items-center justify-between rounded-2xl border border-border bg-card p-4 shadow-toss">
                 <div className="flex min-w-0 items-center gap-3">
                   <IconBadge size="md">{ep.order_index + 1}</IconBadge>
-                  <div className="truncate text-base font-semibold">{ep.title}</div>
+                  <div className="min-w-0">
+                    <div className="truncate text-base font-semibold">{ep.title}</div>
+                    <div className="mt-1 flex items-center gap-2">
+                      <div className="h-1.5 w-28 overflow-hidden rounded-full bg-muted">
+                        <div
+                          className="h-full rounded-full bg-primary"
+                          style={{ width: `${ep.panel_count > 0 ? (ep.done_count / ep.panel_count) * 100 : 0}%` }}
+                        />
+                      </div>
+                      <span className="text-[11px] font-semibold text-muted-foreground">
+                        {ep.done_count ?? 0}/{ep.panel_count ?? 0} {t("project_detail.panels")}
+                      </span>
+                    </div>
+                  </div>
                 </div>
+
                 <div className="flex items-center gap-1">
                   <Button asChild size="sm" variant="ghost" className="rounded-lg">
                     <Link to="/episodes/$id" params={{ id: ep.id }}>

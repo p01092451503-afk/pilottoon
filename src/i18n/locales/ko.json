@@ -140,7 +140,9 @@
     "empty_title": "아직 프로젝트가 없습니다",
     "empty_hint": "위 폼에서 첫 프로젝트를 만들어 보세요.",
     "created_toast": "프로젝트가 생성되었습니다",
-    "deleted_toast": "삭제되었습니다"
+    "deleted_toast": "삭제되었습니다",
+    "stat_episodes": "에피소드 {{count}}개",
+    "stat_panels": "패널 {{count}}개"
   },
   "project_detail": {
     "eyebrow": "프로젝트",
@@ -157,7 +159,8 @@
     "role_placeholder": "역할 (예: 주인공)",
     "add_to_cast": "출연진에 추가",
     "cast_added_toast": "출연진이 추가되었습니다",
-    "create_character_first": "먼저 캐릭터를 만드세요 →"
+    "create_character_first": "먼저 캐릭터를 만드세요 →",
+    "panels": "패널"
   },
   "episodes": {
     "eyebrow": "스토리보드",
@@ -559,7 +562,6 @@
     "panel_saved_toast": "생성 결과가 스토리보드 컷에 저장되었습니다.",
     "panel_linked": "{{episode}} · 컷 {{n}} 에 연결됨",
     "back_to_storyboard": "스토리보드로 돌아가기",
-
     "output": "출력",
     "output_empty": "아직 생성된 이미지가 없습니다.",
     "view": "뷰어 보기",
