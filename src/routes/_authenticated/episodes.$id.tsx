@@ -48,9 +48,35 @@ function EpisodeStoryboard() {
   });
   const invalidate = () => qc.invalidateQueries({ queryKey: ["episode", id] });
 
+  const setCoverFn = useServerFn(setEpisodeCover);
+  const exportFn = useServerFn(listEpisodeExport);
+
   const [newCaption, setNewCaption] = useState("");
   const [dragId, setDragId] = useState<string | null>(null);
   const [localOrder, setLocalOrder] = useState<string[] | null>(null);
+  const [view, setView] = useState<"timeline" | "grid">("timeline");
+  const [zipping, setZipping] = useState(false);
+
+  const coverMut = useMutation({
+    mutationFn: (rid: string | null) => setCoverFn({ data: { episode_id: id, result_id: rid } }),
+    onSuccess: () => { invalidate(); toast.success(t("episodes.cover_set_toast")); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  async function handleZip() {
+    setZipping(true);
+    try {
+      const res = await exportFn({ data: { episode_id: id } });
+      if (res.items.length === 0) { toast.error(t("episodes.zip_empty")); return; }
+      await downloadEpisodeZip(res.title, res.items);
+      toast.success(t("episodes.zip_done"));
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setZipping(false);
+    }
+  }
+
 
   const addMut = useMutation({
     mutationFn: () => addPanelFn({ data: { episode_id: id, caption: newCaption || undefined } }),
