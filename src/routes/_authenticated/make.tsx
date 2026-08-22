@@ -356,6 +356,42 @@ function Workspace({
     [tenantId, tab.refs, onChange, t],
   );
 
+  // 히스토리 결과 이미지를 레퍼런스로 가져오기
+  const useResultsAsRefs = useCallback(
+    async (paths: string[]) => {
+      if (!tenantId || !paths.length) return;
+      const room = MAX_REFS - tab.refs.length;
+      if (room <= 0) {
+        toast.error(t("make.ref_limit", { max: MAX_REFS }));
+        return;
+      }
+      const added: RefImage[] = [];
+      for (const src of paths.slice(0, room)) {
+        const { data, error } = await supabase.storage.from("generation-outputs").download(src);
+        if (error || !data) {
+          toast.error(error?.message ?? "download failed");
+          continue;
+        }
+        const ext = src.split(".").pop()?.toLowerCase() || "png";
+        const path = `${tenantId}/refs/make-${crypto.randomUUID()}.${ext}`;
+        const up = await supabase.storage
+          .from("character-refs")
+          .upload(path, data, { contentType: data.type || "image/png" });
+        if (up.error) {
+          toast.error(up.error.message);
+          continue;
+        }
+        added.push({ id: crypto.randomUUID(), path, name: src.split("/").pop() ?? "image", areas: [] });
+      }
+      if (added.length) {
+        onChange({ refs: [...tab.refs, ...added] });
+        toast.success(t("make.ref_added_toast", { n: added.length }));
+      }
+    },
+    [tenantId, tab.refs, onChange, t],
+  );
+
+
   // 붙여넣기 업로드
   useEffect(() => {
     function onPaste(e: ClipboardEvent) {
