@@ -732,6 +732,11 @@ function Workspace({
               <PresetField
                 label={t("make.composition")} sheet="CameraAngle" cfg={cfg}
                 value={tab.cameraAngleId}
+                isItemDisabled={(it) => {
+                  const text = `${it.label_en ?? ""} ${it.label_ko ?? ""} ${it.prompt_text ?? ""}`;
+                  const rule = CAM_RULES.find((r) => r.angle.test(text));
+                  return Boolean(rule?.requiresTwo) && !(tab.charA && tab.charB);
+                }}
                 onChange={(v) => {
                   const auto = autoCameraPatch(cfg, v);
                   onChange({ cameraAngleId: v, ...auto });
@@ -741,16 +746,22 @@ function Workspace({
 
               <PresetField
                 label={t("make.distance")} sheet="CameraDistance" cfg={cfg}
-                value={tab.cameraDistanceId} onChange={(v) => onChange({ cameraDistanceId: v })}
+                value={tab.cameraDistanceId}
+                onChange={(v) => onChange({ cameraDistanceId: v, cameraAngleId: NONE })}
               />
               <PresetField
                 label={t("make.position")} sheet="CameraPosition" cfg={cfg}
-                value={tab.cameraPositionId} onChange={(v) => onChange({ cameraPositionId: v })}
+                value={tab.cameraPositionId}
+                disabled={!tab.charA && !tab.charB}
+                hint={t("make.position_requires_character")}
+                onChange={(v) => onChange({ cameraPositionId: v, cameraAngleId: NONE })}
               />
               <PresetField
                 label={t("make.focus")} sheet="FocusTarget" cfg={cfg}
-                value={tab.focusTargetId} onChange={(v) => onChange({ focusTargetId: v })}
+                value={tab.focusTargetId}
+                onChange={(v) => onChange({ focusTargetId: v, cameraAngleId: NONE })}
               />
+
             </div>
           </div>
 
