@@ -288,7 +288,8 @@ function CharacterDetailPage() {
                         toast.success(t("characters.primary_set_toast"));
                       }}
                     >
-                      <Star className="mr-1 h-3 w-3" /> {t("characters.set_primary")}
+                      <Star className="mr-1 h-3 w-3 shrink-0" />
+                      <span className="truncate">{t("characters.set_primary")}</span>
                     </Button>
                     <Button
                       variant="ghost"
