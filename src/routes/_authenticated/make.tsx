@@ -973,6 +973,8 @@ function SideList({
   thumbSize,
   onZoom,
   locale,
+  onUseAsRef,
+  onDeleted,
 }: {
   lineRows: HistoryRow[];
   allRows: HistoryRow[];
@@ -980,10 +982,52 @@ function SideList({
   thumbSize: number;
   onZoom: (d: number) => void;
   locale: string;
+  onUseAsRef: (paths: string[]) => Promise<void>;
+  onDeleted: () => void;
 }) {
   const { t } = useTranslation();
   const [tab, setTab] = useState<"line" | "history">("line");
+  const [selectMode, setSelectMode] = useState(false);
+  const [selected, setSelected] = useState<Record<string, string>>({}); // resultId -> storage_path
+  const [busy, setBusy] = useState(false);
   const rows = tab === "line" ? lineRows : allRows;
+  const selectedIds = Object.keys(selected);
+
+  function toggle(id: string, path: string | null) {
+    if (!path) return;
+    setSelected((p) => {
+      const next = { ...p };
+      if (next[id]) delete next[id];
+      else next[id] = path;
+      return next;
+    });
+  }
+
+  async function handleUseAsRef() {
+    setBusy(true);
+    try {
+      await onUseAsRef(Object.values(selected));
+      setSelected({});
+      setSelectMode(false);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleDelete() {
+    if (!window.confirm(t("make.delete_confirm"))) return;
+    setBusy(true);
+    const { error } = await supabase.from("generation_results").delete().in("id", selectedIds);
+    setBusy(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success(t("make.deleted_toast", { n: selectedIds.length }));
+    setSelected({});
+    setSelectMode(false);
+    onDeleted();
+  }
 
   return (
     <div className="flex h-full flex-col">
@@ -1006,6 +1050,20 @@ function SideList({
         <div className="flex items-center gap-1">
           <button
             type="button"
+            aria-label={selectMode ? t("make.cancel_select") : t("make.select_mode")}
+            onClick={() => {
+              setSelectMode((s) => !s);
+              setSelected({});
+            }}
+            className={cn(
+              "rounded p-1 hover:bg-muted",
+              selectMode ? "text-primary" : "text-muted-foreground",
+            )}
+          >
+            <CheckSquare className="h-3.5 w-3.5" />
+          </button>
+          <button
+            type="button"
             aria-label={t("make.zoom_out")}
             onClick={() => onZoom(1)}
             className="rounded p-1 hover:bg-muted"
@@ -1022,6 +1080,35 @@ function SideList({
           </button>
         </div>
       </div>
+
+      {selectMode && (
+        <div className="flex flex-wrap items-center gap-1.5 border-b border-border bg-muted/40 px-3 py-2">
+          <span className="mr-auto text-[11px] font-semibold text-muted-foreground">
+            {t("make.selected_n", { n: selectedIds.length })}
+          </span>
+          <Button
+            type="button"
+            size="sm"
+            variant="secondary"
+            disabled={!selectedIds.length || busy}
+            onClick={handleUseAsRef}
+          >
+            {busy ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> : null}
+            {t("make.use_as_ref")}
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="destructive"
+            disabled={!selectedIds.length || busy}
+            onClick={handleDelete}
+          >
+            <Trash2 className="mr-1 h-3.5 w-3.5" />
+            {t("make.delete_selected")}
+          </Button>
+        </div>
+      )}
+
 
       <div className="max-h-[70vh] space-y-3 overflow-y-auto p-3">
         {loading && <p className="text-xs text-muted-foreground">{t("common.loading")}</p>}
