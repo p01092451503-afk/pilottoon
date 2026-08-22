@@ -10,7 +10,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { IconTooltip } from "@/components/icon-tooltip";
 import { IconBadge, SectionIcon } from "@/components/icon-badge";
+import { SignedImage } from "@/components/SignedImage";
 import { FolderPlus, Trash2, ArrowRight, FolderKanban } from "lucide-react";
+
 
 export const Route = createFileRoute("/_authenticated/projects/")({
   component: ProjectsIndex,
