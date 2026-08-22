@@ -480,21 +480,26 @@ function Workspace({
       role: r.id === tab.charA ? "charA" : r.id === tab.charB ? "charB" : `ref${i + 1}`,
       path: r.path,
     }));
+    // 프롬프트 엔진 경고 노출 (WRN_002 / WRN_004 / WRN_005)
+    for (const w of engine.warnings) {
+      const text = WARN[w as keyof typeof WARN];
+      if (text) toast.warning(text);
+    }
     try {
       const res = await gen.run({
         workLabel: "W1",
         mode: "new",
         aspectRatio: tab.aspectRatio,
-        finalPrompt: composed,
+        finalPrompt: engine.prompt,
         rawPrompt: tab.prompt,
         promptEdited: false,
-        rawPassthrough: true,
+        rawPassthrough: false,
         imagePaths,
         referenceRoles,
-        figureMap: [],
+        figureMap: engine.figureMap,
         options: { aspectRatio: tab.aspectRatio, source: "make" },
         batchCount: tab.count,
-        conflictWarnings: [],
+        conflictWarnings: engine.warnings,
         userMemo: tab.memo || undefined,
       });
       if (res?.generationId) setLineItems((p) => [res.generationId, ...p]);
