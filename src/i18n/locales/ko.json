@@ -482,7 +482,21 @@
     "format": "형식"
   },
   "make": {
+    "auto_applied": "카메라 프리셋이 자동으로 설정되었습니다",
+    "auto_preset": "카메라 자동 설정",
+    "auto_preset_hint": "구도를 선택하면 거리·위치·포커스가 함께 맞춰집니다.",
+    "prompt_tip": "만들고 싶은 장면을 문장으로 적어주세요. @image1 처럼 입력하면 해당 레퍼런스 이미지를 가리킵니다.",
+    "memo_tip": "메모는 프롬프트에 포함되지 않고 기록용으로만 저장됩니다.",
+    "select_mode": "선택",
+    "cancel_select": "선택 취소",
+    "selected_n": "{{n}}장 선택됨",
+    "use_as_ref": "참조로 사용",
+    "delete_selected": "선택 삭제",
+    "delete_confirm": "선택한 이미지를 삭제할까요?",
+    "deleted_toast": "{{n}}장을 삭제했습니다",
+    "ref_added_toast": "{{n}}장을 레퍼런스로 추가했습니다",
     "work_tab": "작업 {{n}}",
+
     "add_tab": "작업 추가",
     "refs": "레퍼런스 이미지",
     "upload_from_pc": "컴퓨터에서 업로드",

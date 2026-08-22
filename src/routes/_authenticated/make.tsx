@@ -12,7 +12,11 @@ import {
   Loader2,
   Maximize2,
   RotateCcw,
+  Info,
+  Trash2,
+  CheckSquare,
 } from "lucide-react";
+
 
 import { supabase } from "@/integrations/supabase/client";
 import { useTenant } from "@/hooks/useTenant";
@@ -41,7 +45,15 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
+
 
 export const Route = createFileRoute("/_authenticated/make")({
   component: MakePage,
@@ -87,6 +99,73 @@ const AREA_EN: Record<string, string> = {
   prop: "props",
   etc: "other details",
 };
+
+/* 슬라이드 48 — 구도(앵글) 선택 시 거리/위치/포커스 자동 설정 규칙 */
+type CamRule = { angle: RegExp; distance?: RegExp; position?: RegExp; focus?: RegExp };
+const CAM_RULES: CamRule[] = [
+  {
+    angle: /close[- ]?up|클로즈업|얼굴/i,
+    distance: /close[- ]?up|클로즈업|근접/i,
+    position: /center|중앙|가운데/i,
+    focus: /face|얼굴/i,
+  },
+  {
+    angle: /bust|상반신|waist|허리/i,
+    distance: /medium|미디엄|중간|bust|상반신/i,
+    position: /center|중앙|가운데/i,
+    focus: /upper|상반신|face|얼굴/i,
+  },
+  {
+    angle: /full|전신|wide|long shot|롱샷|와이드/i,
+    distance: /full|전신|long|롱|wide|와이드/i,
+    position: /center|중앙|가운데/i,
+    focus: /full|전신|body|몸/i,
+  },
+  {
+    angle: /over[- ]?the[- ]?shoulder|오버숄더|숄더/i,
+    distance: /medium|미디엄|중간/i,
+    position: /side|측면|off[- ]?center|왼쪽|오른쪽/i,
+    focus: /face|얼굴/i,
+  },
+  {
+    angle: /low angle|앙각|로우앵글|high angle|부감|하이앵글|bird|top/i,
+    distance: /medium|미디엄|중간/i,
+    position: /center|중앙|가운데/i,
+    focus: /full|전신|body|몸/i,
+  },
+];
+
+function findPreset(cfg: PromptConfig, sheet: string, re: RegExp): string | null {
+  const item = (cfg[sheet] ?? []).find((i) =>
+    re.test(`${i.label_en ?? ""} ${i.label_ko ?? ""} ${i.prompt_text ?? ""}`),
+  );
+  return item?.id ?? null;
+}
+
+/** 선택한 구도에 맞춰 거리/위치/포커스를 자동 계산 */
+function autoCameraPatch(cfg: PromptConfig, angleId: string): Partial<TabState> {
+  if (angleId === NONE) return {};
+  const angle = (cfg["CameraAngle"] ?? []).find((i) => i.id === angleId);
+  if (!angle) return {};
+  const text = `${angle.label_en ?? ""} ${angle.label_ko ?? ""} ${angle.prompt_text ?? ""}`;
+  const rule = CAM_RULES.find((r) => r.angle.test(text));
+  if (!rule) return {};
+  const patch: Partial<TabState> = {};
+  if (rule.distance) {
+    const id = findPreset(cfg, "CameraDistance", rule.distance);
+    if (id) patch.cameraDistanceId = id;
+  }
+  if (rule.position) {
+    const id = findPreset(cfg, "CameraPosition", rule.position);
+    if (id) patch.cameraPositionId = id;
+  }
+  if (rule.focus) {
+    const id = findPreset(cfg, "FocusTarget", rule.focus);
+    if (id) patch.focusTargetId = id;
+  }
+  return patch;
+}
+
 
 type RefImage = { id: string; path: string; name: string; areas: string[] };
 
@@ -277,6 +356,42 @@ function Workspace({
     [tenantId, tab.refs, onChange, t],
   );
 
+  // 히스토리 결과 이미지를 레퍼런스로 가져오기
+  const useResultsAsRefs = useCallback(
+    async (paths: string[]) => {
+      if (!tenantId || !paths.length) return;
+      const room = MAX_REFS - tab.refs.length;
+      if (room <= 0) {
+        toast.error(t("make.ref_limit", { max: MAX_REFS }));
+        return;
+      }
+      const added: RefImage[] = [];
+      for (const src of paths.slice(0, room)) {
+        const { data, error } = await supabase.storage.from("generation-outputs").download(src);
+        if (error || !data) {
+          toast.error(error?.message ?? "download failed");
+          continue;
+        }
+        const ext = src.split(".").pop()?.toLowerCase() || "png";
+        const path = `${tenantId}/refs/make-${crypto.randomUUID()}.${ext}`;
+        const up = await supabase.storage
+          .from("character-refs")
+          .upload(path, data, { contentType: data.type || "image/png" });
+        if (up.error) {
+          toast.error(up.error.message);
+          continue;
+        }
+        added.push({ id: crypto.randomUUID(), path, name: src.split("/").pop() ?? "image", areas: [] });
+      }
+      if (added.length) {
+        onChange({ refs: [...tab.refs, ...added] });
+        toast.success(t("make.ref_added_toast", { n: added.length }));
+      }
+    },
+    [tenantId, tab.refs, onChange, t],
+  );
+
+
   // 붙여넣기 업로드
   useEffect(() => {
     function onPaste(e: ClipboardEvent) {
@@ -393,6 +508,9 @@ function Workspace({
           thumbSize={thumbSize}
           onZoom={(d) => setThumbSize((s) => Math.min(3, Math.max(1, s + d)))}
           locale={i18n.language}
+          onUseAsRef={useResultsAsRefs}
+          onDeleted={() => void history.refetch()}
+
         />
       </aside>
 
@@ -505,7 +623,10 @@ function Workspace({
 
           {/* 카메라 */}
           <div className="lg:col-span-2">
-            <SectionTitle>{t("make.camera")}</SectionTitle>
+            <div className="mb-2 flex items-center gap-2">
+              <SectionTitle>{t("make.camera")}</SectionTitle>
+              <InfoTip text={t("make.auto_preset_hint")} />
+            </div>
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
               <RefSelect
                 label={t("make.character_a")} refs={tab.refs}
@@ -517,8 +638,14 @@ function Workspace({
               />
               <PresetField
                 label={t("make.composition")} sheet="CameraAngle" cfg={cfg}
-                value={tab.cameraAngleId} onChange={(v) => onChange({ cameraAngleId: v })}
+                value={tab.cameraAngleId}
+                onChange={(v) => {
+                  const auto = autoCameraPatch(cfg, v);
+                  onChange({ cameraAngleId: v, ...auto });
+                  if (Object.keys(auto).length) toast.info(t("make.auto_applied"));
+                }}
               />
+
               <PresetField
                 label={t("make.distance")} sheet="CameraDistance" cfg={cfg}
                 value={tab.cameraDistanceId} onChange={(v) => onChange({ cameraDistanceId: v })}
@@ -587,7 +714,11 @@ function Workspace({
 
           {/* 프롬프트 */}
           <div className="lg:col-span-2">
-            <SectionTitle>{t("make.prompt")}</SectionTitle>
+            <div className="mb-2 flex items-center gap-2">
+              <SectionTitle>{t("make.prompt")}</SectionTitle>
+              <InfoTip text={t("make.prompt_tip")} />
+            </div>
+
             <AutoResizeTextarea
               minHeight={120}
               maxHeight={520}
@@ -614,7 +745,11 @@ function Workspace({
               </span>
             </div>
 
-            <Label className="mt-3 block text-xs text-muted-foreground">{t("make.memo")}</Label>
+            <div className="mt-3 flex items-center gap-2">
+              <Label className="block text-xs text-muted-foreground">{t("make.memo")}</Label>
+              <InfoTip text={t("make.memo_tip")} />
+            </div>
+
             <AutoResizeTextarea
               minHeight={64}
               maxHeight={240}
@@ -766,7 +901,27 @@ function Workspace({
 
 /* ───────────────────────── small parts ───────────────────────── */
 
+function InfoTip({ text }: { text: string }) {
+  return (
+    <TooltipProvider delayDuration={150}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            aria-label={text}
+            className="rounded-full p-0.5 text-muted-foreground hover:text-foreground"
+          >
+            <Info className="h-3.5 w-3.5" />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent className="max-w-xs text-xs leading-relaxed">{text}</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
 function SectionTitle({ children }: { children: React.ReactNode }) {
+
   return <h2 className="mb-2 text-sm font-bold tracking-tight">{children}</h2>;
 }
 
@@ -857,6 +1012,8 @@ function SideList({
   thumbSize,
   onZoom,
   locale,
+  onUseAsRef,
+  onDeleted,
 }: {
   lineRows: HistoryRow[];
   allRows: HistoryRow[];
@@ -864,10 +1021,52 @@ function SideList({
   thumbSize: number;
   onZoom: (d: number) => void;
   locale: string;
+  onUseAsRef: (paths: string[]) => Promise<void>;
+  onDeleted: () => void;
 }) {
   const { t } = useTranslation();
   const [tab, setTab] = useState<"line" | "history">("line");
+  const [selectMode, setSelectMode] = useState(false);
+  const [selected, setSelected] = useState<Record<string, string>>({}); // resultId -> storage_path
+  const [busy, setBusy] = useState(false);
   const rows = tab === "line" ? lineRows : allRows;
+  const selectedIds = Object.keys(selected);
+
+  function toggle(id: string, path: string | null) {
+    if (!path) return;
+    setSelected((p) => {
+      const next = { ...p };
+      if (next[id]) delete next[id];
+      else next[id] = path;
+      return next;
+    });
+  }
+
+  async function handleUseAsRef() {
+    setBusy(true);
+    try {
+      await onUseAsRef(Object.values(selected));
+      setSelected({});
+      setSelectMode(false);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleDelete() {
+    if (!window.confirm(t("make.delete_confirm"))) return;
+    setBusy(true);
+    const { error } = await supabase.from("generation_results").delete().in("id", selectedIds);
+    setBusy(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success(t("make.deleted_toast", { n: selectedIds.length }));
+    setSelected({});
+    setSelectMode(false);
+    onDeleted();
+  }
 
   return (
     <div className="flex h-full flex-col">
@@ -890,6 +1089,20 @@ function SideList({
         <div className="flex items-center gap-1">
           <button
             type="button"
+            aria-label={selectMode ? t("make.cancel_select") : t("make.select_mode")}
+            onClick={() => {
+              setSelectMode((s) => !s);
+              setSelected({});
+            }}
+            className={cn(
+              "rounded p-1 hover:bg-muted",
+              selectMode ? "text-primary" : "text-muted-foreground",
+            )}
+          >
+            <CheckSquare className="h-3.5 w-3.5" />
+          </button>
+          <button
+            type="button"
             aria-label={t("make.zoom_out")}
             onClick={() => onZoom(1)}
             className="rounded p-1 hover:bg-muted"
@@ -906,6 +1119,35 @@ function SideList({
           </button>
         </div>
       </div>
+
+      {selectMode && (
+        <div className="flex flex-wrap items-center gap-1.5 border-b border-border bg-muted/40 px-3 py-2">
+          <span className="mr-auto text-[11px] font-semibold text-muted-foreground">
+            {t("make.selected_n", { n: selectedIds.length })}
+          </span>
+          <Button
+            type="button"
+            size="sm"
+            variant="secondary"
+            disabled={!selectedIds.length || busy}
+            onClick={handleUseAsRef}
+          >
+            {busy ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> : null}
+            {t("make.use_as_ref")}
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="destructive"
+            disabled={!selectedIds.length || busy}
+            onClick={handleDelete}
+          >
+            <Trash2 className="mr-1 h-3.5 w-3.5" />
+            {t("make.delete_selected")}
+          </Button>
+        </div>
+      )}
+
 
       <div className="max-h-[70vh] space-y-3 overflow-y-auto p-3">
         {loading && <p className="text-xs text-muted-foreground">{t("common.loading")}</p>}
@@ -948,14 +1190,28 @@ function SideList({
                   .slice()
                   .sort((a, b) => a.seq - b.seq)
                   .map((g) => (
-                    <SignedImage
-                      key={g.id}
-                      bucket="generation-outputs"
-                      path={g.thumb_path ?? g.storage_path}
-                      alt="thumbnail"
-                      className="aspect-square w-full rounded-lg object-cover"
-                    />
+                    <div key={g.id} className="relative">
+                      <SignedImage
+                        bucket="generation-outputs"
+                        path={g.thumb_path ?? g.storage_path}
+                        alt="thumbnail"
+                        className={cn(
+                          "aspect-square w-full rounded-lg object-cover",
+                          selected[g.id] && "ring-2 ring-primary",
+                        )}
+                      />
+                      {selectMode && (
+                        <div className="absolute left-1 top-1 rounded bg-background/90 p-0.5">
+                          <Checkbox
+                            checked={!!selected[g.id]}
+                            onCheckedChange={() => toggle(g.id, g.storage_path)}
+                            aria-label={t("make.select_mode")}
+                          />
+                        </div>
+                      )}
+                    </div>
                   ))}
+
               </div>
             )}
           </article>
