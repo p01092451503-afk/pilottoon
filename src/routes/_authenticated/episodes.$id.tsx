@@ -275,13 +275,14 @@ function EpisodeStoryboard() {
 /* ---------- Panel Card ---------- */
 
 function PanelCard({
-  index, panel, dragging,
+  index, panel, dragging, isCover,
   onDragStart, onDragOver, onDrop,
-  onOpen, onDelete, onCaptionSave, onChoose,
+  onOpen, onDelete, onCaptionSave, onChoose, onSetCover,
 }: {
   index: number;
   panel: any;
   dragging: boolean;
+  isCover: boolean;
   onDragStart: () => void;
   onDragOver: (e: React.DragEvent) => void;
   onDrop: () => void;
@@ -289,6 +290,7 @@ function PanelCard({
   onDelete: () => void;
   onCaptionSave: (caption: string) => void;
   onChoose: (resultId: string) => void;
+  onSetCover: (resultId: string | null) => void;
 }) {
   const { t } = useTranslation();
   const [caption, setCaption] = useState(panel.caption ?? "");
