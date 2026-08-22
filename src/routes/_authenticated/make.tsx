@@ -292,7 +292,9 @@ function newTab(): TabState {
 
 function MakePage() {
   const { t } = useTranslation();
+  const search = Route.useSearch();
   const [tabs, setTabs] = useState<TabState[]>(() => [newTab()]);
+
   const [activeId, setActiveId] = useState<string | null>(null);
   const active = activeId ?? tabs[0]!.id;
 
