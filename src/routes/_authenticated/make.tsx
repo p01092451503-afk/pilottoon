@@ -461,6 +461,68 @@ function Workspace({
   );
 
 
+  // 카드 단위: 첫 번째 결과 이미지를 레퍼런스로 추가
+  const useFirstResultAsRef = useCallback(
+    async (paths: string[]) => {
+      const first = paths.find(Boolean);
+      if (!first) return;
+      await useResultsAsRefs([first]);
+    },
+    [useResultsAsRefs],
+  );
+
+  // 카드 단위: 저장된 옵션/레퍼런스 스냅샷으로 현재 탭 복원 (이미지 수정)
+  const restoreGeneration = useCallback(
+    async (generationId: string) => {
+      const { data, error } = await supabase
+        .from("generations")
+        .select("options, reference_files, raw_prompt, final_prompt, user_memo")
+        .eq("id", generationId)
+        .maybeSingle();
+      if (error || !data) {
+        toast.error(error?.message ?? t("make.restore_failed"));
+        return;
+      }
+      const opts = (data.options ?? {}) as Record<string, unknown>;
+      const files = Array.isArray(data.reference_files)
+        ? (data.reference_files as Array<Record<string, unknown>>)
+        : [];
+      const refs: RefImage[] = files
+        .filter((f) => typeof f.file === "string")
+        .slice(0, MAX_REFS)
+        .map((f) => ({
+          id: crypto.randomUUID(),
+          path: String(f.file),
+          name: String(f.file).split("/").pop() ?? "ref",
+          areas: [],
+        }));
+      const roleAt = (role: string) => files.findIndex((f) => f.role === role);
+      const idxA = roleAt("charA");
+      const idxB = roleAt("charB");
+      const str = (k: string) => (typeof opts[k] === "string" ? (opts[k] as string) : NONE);
+      onChange({
+        refs,
+        charA: idxA >= 0 ? (refs[idxA]?.id ?? null) : null,
+        charB: idxB >= 0 ? (refs[idxB]?.id ?? null) : null,
+        prompt: (data.raw_prompt as string | null) ?? "",
+        memo: (data.user_memo as string | null) ?? "",
+        aspectRatio:
+          typeof opts.aspectRatio === "string" ? (opts.aspectRatio as string) : tab.aspectRatio,
+        emotionId: str("emotionId"),
+        styleFinishId: str("styleFinishId"),
+        bgStyleId: str("bgStyleId"),
+        cameraAngleId: str("cameraAngleId"),
+        cameraDistanceId: str("cameraDistanceId"),
+        cameraPositionId: str("cameraPositionId"),
+        focusTargetId: str("focusTargetId"),
+        poseStrengthId: str("poseStrengthId"),
+        bgStrengthId: str("bgStrengthId"),
+      });
+      toast.success(t("make.restored_toast"));
+    },
+    [onChange, t, tab.aspectRatio],
+  );
+
   // 붙여넣기 업로드
   useEffect(() => {
     function onPaste(e: ClipboardEvent) {
