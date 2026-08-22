@@ -541,6 +541,10 @@
     "generating": "Generating image…",
     "generating_hint": "Generating {{n}} image(s).",
     "done_toast": "Image generation finished.",
+    "panel_saved_toast": "The result was saved to the storyboard panel.",
+    "panel_linked": "Linked to {{episode}} · panel {{n}}",
+    "back_to_storyboard": "Back to storyboard",
+
     "output": "Output",
     "output_empty": "No images generated yet.",
     "view": "Open viewer",
