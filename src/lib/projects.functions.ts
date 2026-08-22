@@ -79,7 +79,7 @@ export const getProject = createServerFn({ method: "GET" })
   .handler(async ({ data, context }) => {
     const [{ data: project, error: pErr }, { data: episodes, error: eErr }, { data: cast, error: cErr }] = await Promise.all([
       context.supabase.from("projects").select("id, title, created_at").eq("id", data.id).single(),
-      context.supabase.from("episodes").select("id, title, order_index, created_at").eq("project_id", data.id).order("order_index"),
+      context.supabase.from("episodes").select("id, title, order_index, created_at, cover_result_id").eq("project_id", data.id).order("order_index"),
       context.supabase.from("project_cast").select("character_id, role_label, characters(id, display_name)").eq("project_id", data.id),
     ]);
     if (pErr) throw new Error(pErr.message);
