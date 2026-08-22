@@ -689,6 +689,7 @@ function Workspace({
         batchCount: tab.count,
         conflictWarnings: engine.warnings,
         userMemo: tab.memo || undefined,
+        panelId: panelId ?? undefined,
       });
       if (res?.generationId) setLineItems((p) => [res.generationId, ...p]);
       if (res?.status === "error") {
@@ -697,8 +698,10 @@ function Workspace({
         toast.error(key ? t(key) : msg);
         return;
       }
-      toast.success(t("make.done_toast"));
+      toast.success(panelId ? t("make.panel_saved_toast") : t("make.done_toast"));
       void history.refetch();
+      if (panelId) void panelCtx.refetch();
+
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       const key = generateErrorKey(msg);
