@@ -23,6 +23,7 @@ import { Route as AuthenticatedProjectsIndexRouteImport } from './routes/_authen
 import { Route as AuthenticatedCharactersIndexRouteImport } from './routes/_authenticated/characters.index'
 import { Route as AuthenticatedProjectsIdRouteImport } from './routes/_authenticated/projects.$id'
 import { Route as AuthenticatedEpisodesIdRouteImport } from './routes/_authenticated/episodes.$id'
+import { Route as AuthenticatedCharactersIdRouteImport } from './routes/_authenticated/characters.$id'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -95,6 +96,12 @@ const AuthenticatedEpisodesIdRoute = AuthenticatedEpisodesIdRouteImport.update({
   path: '/episodes/$id',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedCharactersIdRoute =
+  AuthenticatedCharactersIdRouteImport.update({
+    id: '/characters/$id',
+    path: '/characters/$id',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -106,6 +113,7 @@ export interface FileRoutesByFullPath {
   '/studio': typeof AuthenticatedStudioRoute
   '/usage': typeof AuthenticatedUsageRoute
   '/video': typeof AuthenticatedVideoRoute
+  '/characters/$id': typeof AuthenticatedCharactersIdRoute
   '/episodes/$id': typeof AuthenticatedEpisodesIdRoute
   '/projects/$id': typeof AuthenticatedProjectsIdRoute
   '/characters/': typeof AuthenticatedCharactersIndexRoute
@@ -121,6 +129,7 @@ export interface FileRoutesByTo {
   '/studio': typeof AuthenticatedStudioRoute
   '/usage': typeof AuthenticatedUsageRoute
   '/video': typeof AuthenticatedVideoRoute
+  '/characters/$id': typeof AuthenticatedCharactersIdRoute
   '/episodes/$id': typeof AuthenticatedEpisodesIdRoute
   '/projects/$id': typeof AuthenticatedProjectsIdRoute
   '/characters': typeof AuthenticatedCharactersIndexRoute
@@ -138,6 +147,7 @@ export interface FileRoutesById {
   '/_authenticated/studio': typeof AuthenticatedStudioRoute
   '/_authenticated/usage': typeof AuthenticatedUsageRoute
   '/_authenticated/video': typeof AuthenticatedVideoRoute
+  '/_authenticated/characters/$id': typeof AuthenticatedCharactersIdRoute
   '/_authenticated/episodes/$id': typeof AuthenticatedEpisodesIdRoute
   '/_authenticated/projects/$id': typeof AuthenticatedProjectsIdRoute
   '/_authenticated/characters/': typeof AuthenticatedCharactersIndexRoute
@@ -155,6 +165,7 @@ export interface FileRouteTypes {
     | '/studio'
     | '/usage'
     | '/video'
+    | '/characters/$id'
     | '/episodes/$id'
     | '/projects/$id'
     | '/characters/'
@@ -170,6 +181,7 @@ export interface FileRouteTypes {
     | '/studio'
     | '/usage'
     | '/video'
+    | '/characters/$id'
     | '/episodes/$id'
     | '/projects/$id'
     | '/characters'
@@ -186,6 +198,7 @@ export interface FileRouteTypes {
     | '/_authenticated/studio'
     | '/_authenticated/usage'
     | '/_authenticated/video'
+    | '/_authenticated/characters/$id'
     | '/_authenticated/episodes/$id'
     | '/_authenticated/projects/$id'
     | '/_authenticated/characters/'
@@ -298,6 +311,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedEpisodesIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/characters/$id': {
+      id: '/_authenticated/characters/$id'
+      path: '/characters/$id'
+      fullPath: '/characters/$id'
+      preLoaderRoute: typeof AuthenticatedCharactersIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
@@ -309,6 +329,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedStudioRoute: typeof AuthenticatedStudioRoute
   AuthenticatedUsageRoute: typeof AuthenticatedUsageRoute
   AuthenticatedVideoRoute: typeof AuthenticatedVideoRoute
+  AuthenticatedCharactersIdRoute: typeof AuthenticatedCharactersIdRoute
   AuthenticatedEpisodesIdRoute: typeof AuthenticatedEpisodesIdRoute
   AuthenticatedProjectsIdRoute: typeof AuthenticatedProjectsIdRoute
   AuthenticatedCharactersIndexRoute: typeof AuthenticatedCharactersIndexRoute
@@ -323,6 +344,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedStudioRoute: AuthenticatedStudioRoute,
   AuthenticatedUsageRoute: AuthenticatedUsageRoute,
   AuthenticatedVideoRoute: AuthenticatedVideoRoute,
+  AuthenticatedCharactersIdRoute: AuthenticatedCharactersIdRoute,
   AuthenticatedEpisodesIdRoute: AuthenticatedEpisodesIdRoute,
   AuthenticatedProjectsIdRoute: AuthenticatedProjectsIdRoute,
   AuthenticatedCharactersIndexRoute: AuthenticatedCharactersIndexRoute,
