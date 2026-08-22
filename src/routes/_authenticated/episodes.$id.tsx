@@ -366,6 +366,14 @@ function PanelCard({
                 {t("episodes.variants")}
               </Button>
             )}
+            {panel.chosen_result_id && (
+              <IconTooltip label={isCover ? t("episodes.cover_current") : t("episodes.set_cover")}>
+                <Button size="sm" variant="ghost" className="rounded-lg"
+                  onClick={() => onSetCover(isCover ? null : panel.chosen_result_id)}>
+                  <Star className={"h-4 w-4 " + (isCover ? "fill-primary text-primary" : "text-muted-foreground")} />
+                </Button>
+              </IconTooltip>
+            )}
             <Button size="sm" variant="ghost" className="rounded-lg" onClick={onOpen}>
               <Wand2 className="mr-1 h-4 w-4" />
               {panel.chosen ? t("episodes.regenerate") : t("episodes.generate")}
