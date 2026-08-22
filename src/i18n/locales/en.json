@@ -482,7 +482,21 @@
     "format": "Format"
   },
   "make": {
+    "auto_applied": "Camera presets were applied automatically",
+    "auto_preset": "Camera auto-setup",
+    "auto_preset_hint": "Choosing a composition also sets distance, position and focus.",
+    "prompt_tip": "Describe the scene you want. Use @image1 to point at a reference image.",
+    "memo_tip": "The memo is stored for your records only and is never sent in the prompt.",
+    "select_mode": "Select",
+    "cancel_select": "Cancel selection",
+    "selected_n": "{{n}} selected",
+    "use_as_ref": "Use as reference",
+    "delete_selected": "Delete selected",
+    "delete_confirm": "Delete the selected images?",
+    "deleted_toast": "Deleted {{n}} image(s)",
+    "ref_added_toast": "Added {{n}} image(s) as references",
     "work_tab": "Work {{n}}",
+
     "add_tab": "Add work tab",
     "refs": "Reference images",
     "upload_from_pc": "Upload from computer",
