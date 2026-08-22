@@ -97,8 +97,17 @@ function ProjectsIndex() {
                 key={p.id}
                 className="group overflow-hidden rounded-2xl border border-border bg-card shadow-toss-sm transition hover:shadow-toss"
               >
-                <div className="flex aspect-[16/9] items-center justify-center bg-gradient-to-br from-primary-soft to-muted/60">
-                  <FolderKanban className="h-10 w-10 text-primary/70" />
+                <div className="flex aspect-[16/9] items-center justify-center overflow-hidden bg-gradient-to-br from-primary-soft to-muted/60">
+                  {p.cover_path ? (
+                    <SignedImage
+                      bucket="generation-outputs"
+                      path={p.cover_path}
+                      alt={p.title}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <FolderKanban className="h-10 w-10 text-primary/70" />
+                  )}
                 </div>
                 <div className="space-y-3 p-4">
                   <div className="min-w-0">
@@ -107,6 +116,21 @@ function ProjectsIndex() {
                       {new Date(p.created_at).toLocaleDateString()}
                     </div>
                   </div>
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between text-[11px] font-semibold text-muted-foreground">
+                      <span>{t("projects.stat_episodes", { count: p.episode_count })} · {t("projects.stat_panels", { count: p.panel_count })}</span>
+                      <span className="text-primary">
+                        {p.panel_count > 0 ? Math.round((p.done_count / p.panel_count) * 100) : 0}%
+                      </span>
+                    </div>
+                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                      <div
+                        className="h-full rounded-full bg-primary transition-all"
+                        style={{ width: `${p.panel_count > 0 ? (p.done_count / p.panel_count) * 100 : 0}%` }}
+                      />
+                    </div>
+                  </div>
+
                   <div className="flex items-center gap-1">
                     <Button asChild variant="ghost" size="sm" className="flex-1 rounded-lg text-xs font-semibold text-primary hover:bg-primary-soft">
                       <Link to="/projects/$id" params={{ id: p.id }}>
