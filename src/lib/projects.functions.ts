@@ -265,3 +265,49 @@ export const getPanelContext = createServerFn({ method: "GET" })
       cast: castNormalized,
     };
   });
+
+export const listProjectTree = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data, error } = await context.supabase
+      .from("projects")
+      .select("id, title, episodes(id, title, order_index)")
+      .order("created_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    return (data ?? []).map((p: any) => ({
+      id: p.id as string,
+      title: p.title as string,
+      episodes: ((p.episodes ?? []) as any[])
+        .slice()
+        .sort((a, b) => a.order_index - b.order_index)
+        .map((e) => ({ id: e.id as string, title: e.title as string, order_index: e.order_index as number })),
+    }));
+  });
+
+export const exportResultToEpisode = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z.object({
+      episode_id: z.string().uuid(),
+      result_id: z.string().uuid(),
+      caption: z.string().max(500).optional(),
+    }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: last } = await context.supabase
+      .from("panels").select("order_index").eq("episode_id", data.episode_id)
+      .order("order_index", { ascending: false }).limit(1).maybeSingle();
+    const nextIdx = (last?.order_index ?? -1) + 1;
+    const { data: row, error } = await context.supabase
+      .from("panels")
+      .insert({
+        episode_id: data.episode_id,
+        order_index: nextIdx,
+        caption: data.caption ?? null,
+        chosen_result_id: data.result_id,
+        status: "done",
+      })
+      .select("id, order_index").single();
+    if (error) throw new Error(error.message);
+    return row;
+  });
