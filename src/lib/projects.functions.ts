@@ -388,3 +388,47 @@ export const exportResultToEpisode = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return row;
   });
+
+export const setEpisodeCover = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z.object({
+      episode_id: z.string().uuid(),
+      result_id: z.string().uuid().nullable(),
+    }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase
+      .from("episodes")
+      .update({ cover_result_id: data.result_id })
+      .eq("id", data.episode_id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const listEpisodeExport = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ episode_id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { data: episode, error: eErr } = await context.supabase
+      .from("episodes").select("id, title").eq("id", data.episode_id).single();
+    if (eErr) throw new Error(eErr.message);
+
+    const { data: panels, error } = await context.supabase
+      .from("panels")
+      .select("id, order_index, caption, chosen:generation_results!panels_chosen_result_id_fkey(storage_path)")
+      .eq("episode_id", data.episode_id)
+      .order("order_index");
+    if (error) throw new Error(error.message);
+
+    return {
+      title: (episode as any).title as string,
+      items: (panels ?? [])
+        .filter((p: any) => p.chosen?.storage_path)
+        .map((p: any) => ({
+          order_index: p.order_index as number,
+          caption: (p.caption ?? null) as string | null,
+          storage_path: p.chosen.storage_path as string,
+        })),
+    };
+  });
