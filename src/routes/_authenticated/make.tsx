@@ -154,6 +154,10 @@ function MakePage() {
 
   return (
     <main className="w-full px-4 py-4">
+      <div className="mb-4">
+        <ImageModelHealthCard />
+      </div>
+
       {/* 페이지 탭 */}
       <div className="flex items-center gap-1 border-b border-border pb-2">
         {tabs.map((tab, i) => (
