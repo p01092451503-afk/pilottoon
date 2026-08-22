@@ -89,7 +89,7 @@ function EpisodeStoryboard() {
     search.set("back", id);
     if (charA) search.set("charA", charA.character_id);
     if (charB) search.set("charB", charB.character_id);
-    navigate({ to: "/generate", search: Object.fromEntries(search) as any });
+    navigate({ to: "/make", search: Object.fromEntries(search) as any });
   }
 
   function onDragStart(pid: string) { setDragId(pid); }

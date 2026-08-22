@@ -315,7 +315,7 @@ function HistoryPage() {
           <p className="mt-1 text-xs text-muted-foreground">
             {t("history.empty_hint_before")}{" "}
             <Link
-              to={tab === "video" ? "/video" : "/generate"}
+              to={tab === "video" ? "/video" : "/make"}
               className="font-semibold text-primary underline"
             >
               {t("history.empty_hint_link")}
@@ -624,7 +624,7 @@ function DetailCard({ row, onClose, locale }: { row: Row; onClose: () => void; l
         </div>
         <div className="flex shrink-0 gap-2">
           <Button size="sm" variant="outline" asChild className="rounded-full">
-            <Link to="/generate" onClick={loadIntoGenerate}>
+            <Link to="/make" onClick={loadIntoGenerate}>
               {t("history.load_settings")}
             </Link>
           </Button>
