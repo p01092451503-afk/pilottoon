@@ -1151,14 +1151,28 @@ function SideList({
                   .slice()
                   .sort((a, b) => a.seq - b.seq)
                   .map((g) => (
-                    <SignedImage
-                      key={g.id}
-                      bucket="generation-outputs"
-                      path={g.thumb_path ?? g.storage_path}
-                      alt="thumbnail"
-                      className="aspect-square w-full rounded-lg object-cover"
-                    />
+                    <div key={g.id} className="relative">
+                      <SignedImage
+                        bucket="generation-outputs"
+                        path={g.thumb_path ?? g.storage_path}
+                        alt="thumbnail"
+                        className={cn(
+                          "aspect-square w-full rounded-lg object-cover",
+                          selected[g.id] && "ring-2 ring-primary",
+                        )}
+                      />
+                      {selectMode && (
+                        <div className="absolute left-1 top-1 rounded bg-background/90 p-0.5">
+                          <Checkbox
+                            checked={!!selected[g.id]}
+                            onCheckedChange={() => toggle(g.id, g.storage_path)}
+                            aria-label={t("make.select_mode")}
+                          />
+                        </div>
+                      )}
+                    </div>
                   ))}
+
               </div>
             )}
           </article>
