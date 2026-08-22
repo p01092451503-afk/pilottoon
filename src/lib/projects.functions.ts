@@ -85,7 +85,27 @@ export const getProject = createServerFn({ method: "GET" })
     if (pErr) throw new Error(pErr.message);
     if (eErr) throw new Error(eErr.message);
     if (cErr) throw new Error(cErr.message);
-    return { project, episodes: episodes ?? [], cast: cast ?? [] };
+
+    const epList = episodes ?? [];
+    let panels: any[] = [];
+    if (epList.length > 0) {
+      const { data: p } = await context.supabase
+        .from("panels")
+        .select("id, episode_id, status")
+        .in("episode_id", epList.map((e: any) => e.id));
+      panels = p ?? [];
+    }
+    const episodesWithStats = epList.map((e: any) => {
+      const mine = panels.filter((p) => p.episode_id === e.id);
+      return {
+        ...e,
+        panel_count: mine.length,
+        done_count: mine.filter((p) => p.status === "done").length,
+      };
+    });
+
+    return { project, episodes: episodesWithStats, cast: cast ?? [] };
+
   });
 
 export const createEpisode = createServerFn({ method: "POST" })
