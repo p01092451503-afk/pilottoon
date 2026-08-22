@@ -497,6 +497,12 @@
     "delete_confirm": "선택한 이미지를 삭제할까요?",
     "deleted_toast": "{{n}}장을 삭제했습니다",
     "ref_added_toast": "{{n}}장을 레퍼런스로 추가했습니다",
+    "card_use_as_ref": "레퍼런스로 사용",
+    "card_edit_image": "이미지 수정",
+    "clear_line": "목록 초기화",
+    "line_cleared_toast": "현재 목록을 초기화했습니다",
+    "restored_toast": "해당 생성의 설정을 불러왔습니다",
+    "restore_failed": "생성 정보를 불러오지 못했습니다",
     "work_tab": "작업 {{n}}",
 
     "add_tab": "작업 추가",
