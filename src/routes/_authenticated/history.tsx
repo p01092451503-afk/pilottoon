@@ -6,6 +6,7 @@ import { useTenant } from "@/hooks/useTenant";
 import { SignedImage } from "@/components/SignedImage";
 import { ImageDownloadMenu } from "@/components/image-download-menu";
 import { ImageLightbox } from "@/components/image-lightbox";
+import { ExportToEpisodeDialog } from "@/components/export-to-episode-dialog";
 import { SignedVideo } from "@/components/SignedVideo";
 import { Button } from "@/components/ui/button";
 import { IconTooltip } from "@/components/icon-tooltip";
