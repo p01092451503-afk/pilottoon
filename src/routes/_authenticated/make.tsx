@@ -862,7 +862,27 @@ function Workspace({
 
 /* ───────────────────────── small parts ───────────────────────── */
 
+function InfoTip({ text }: { text: string }) {
+  return (
+    <TooltipProvider delayDuration={150}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            aria-label={text}
+            className="rounded-full p-0.5 text-muted-foreground hover:text-foreground"
+          >
+            <Info className="h-3.5 w-3.5" />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent className="max-w-xs text-xs leading-relaxed">{text}</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
 function SectionTitle({ children }: { children: React.ReactNode }) {
+
   return <h2 className="mb-2 text-sm font-bold tracking-tight">{children}</h2>;
 }
 
