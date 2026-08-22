@@ -28,7 +28,13 @@ import { ImageLightbox, type LightboxItem } from "@/components/image-lightbox";
 import { AutoResizeTextarea } from "@/components/auto-resize-textarea";
 import { ImageModelHealthCard } from "@/components/image-model-health-card";
 import { generateErrorKey } from "@/lib/generate-error";
-import type { PromptConfig } from "@/lib/promptEngine";
+import {
+  buildFigureMap,
+  buildPrompt,
+  WARN,
+  type PromptConfig,
+  type WorkInput,
+} from "@/lib/promptEngine";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
