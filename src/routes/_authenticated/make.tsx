@@ -62,10 +62,13 @@ import { cn } from "@/lib/utils";
 
 
 export const Route = createFileRoute("/_authenticated/make")({
-  validateSearch: (search: Record<string, unknown>) => ({
-    panel: typeof search['panel'] === "string" ? (search['panel'] as string) : undefined,
-    back: typeof search['back'] === "string" ? (search['back'] as string) : undefined,
-  }),
+  validateSearch: (search: Record<string, unknown>): { panel?: string; back?: string } => {
+    const out: { panel?: string; back?: string } = {};
+    if (typeof search['panel'] === "string") out.panel = search['panel'] as string;
+    if (typeof search['back'] === "string") out.back = search['back'] as string;
+    return out;
+  },
+
   component: MakePage,
 
   head: () => ({
