@@ -572,7 +572,10 @@ function Workspace({
 
           {/* 카메라 */}
           <div className="lg:col-span-2">
-            <SectionTitle>{t("make.camera")}</SectionTitle>
+            <div className="mb-2 flex items-center gap-2">
+              <SectionTitle>{t("make.camera")}</SectionTitle>
+              <InfoTip text={t("make.auto_preset_hint")} />
+            </div>
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
               <RefSelect
                 label={t("make.character_a")} refs={tab.refs}
@@ -584,8 +587,14 @@ function Workspace({
               />
               <PresetField
                 label={t("make.composition")} sheet="CameraAngle" cfg={cfg}
-                value={tab.cameraAngleId} onChange={(v) => onChange({ cameraAngleId: v })}
+                value={tab.cameraAngleId}
+                onChange={(v) => {
+                  const auto = autoCameraPatch(cfg, v);
+                  onChange({ cameraAngleId: v, ...auto });
+                  if (Object.keys(auto).length) toast.info(t("make.auto_applied"));
+                }}
               />
+
               <PresetField
                 label={t("make.distance")} sheet="CameraDistance" cfg={cfg}
                 value={tab.cameraDistanceId} onChange={(v) => onChange({ cameraDistanceId: v })}
