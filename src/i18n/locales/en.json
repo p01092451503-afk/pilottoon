@@ -178,7 +178,15 @@
     "generate": "Generate",
     "loading_variants": "Loading variants…",
     "no_variants": "No variants yet.",
-    "panel_updated_toast": "Panel updated"
+    "panel_updated_toast": "Panel updated",
+    "view_timeline": "Timeline",
+    "view_grid": "Grid",
+    "download_zip": "Download ZIP",
+    "zip_empty": "No finalized images to download.",
+    "zip_done": "ZIP download started.",
+    "set_cover": "Set as cover",
+    "cover_current": "Current cover",
+    "cover_set_toast": "Episode cover updated."
   },
   "characters": {
     "eyebrow": "Library",

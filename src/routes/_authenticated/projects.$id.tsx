@@ -9,6 +9,7 @@ import {
   addCastMember, removeCastMember,
 } from "@/lib/projects.functions";
 import { useCharacters } from "@/hooks/useCharacters";
+import { SignedImage } from "@/components/SignedImage";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { IconTooltip } from "@/components/icon-tooltip";
@@ -102,7 +103,14 @@ function ProjectDetail() {
             {data.episodes.map((ep: any) => (
               <li key={ep.id} className="flex items-center justify-between rounded-2xl border border-border bg-card p-4 shadow-toss">
                 <div className="flex min-w-0 items-center gap-3">
-                  <IconBadge size="md">{ep.order_index + 1}</IconBadge>
+                  <div className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-xl bg-muted">
+                    {ep.cover_path ? (
+                      <SignedImage bucket="generation-outputs" path={ep.cover_path} alt={ep.title}
+                        className="h-full w-full object-cover" />
+                    ) : (
+                      <IconBadge size="md">{ep.order_index + 1}</IconBadge>
+                    )}
+                  </div>
                   <div className="min-w-0">
                     <div className="truncate text-base font-semibold">{ep.title}</div>
                     <div className="mt-1 flex items-center gap-2">

@@ -6,8 +6,9 @@ import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import {
   getEpisode, createPanel, deletePanel, updatePanel,
-  reorderPanels, listPanelGenerations,
+  reorderPanels, listPanelGenerations, setEpisodeCover, listEpisodeExport,
 } from "@/lib/projects.functions";
+import { downloadEpisodeZip } from "@/lib/zip-download";
 import { SignedImage } from "@/components/SignedImage";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,7 @@ import { IconTooltip } from "@/components/icon-tooltip";
 import { IconBadge, SectionIcon } from "@/components/icon-badge";
 import {
   Plus, Trash2, GripVertical, Wand2, Check, ImageIcon, Loader2, ChevronDown,
+  Star, Download, LayoutGrid, List,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/episodes/$id")({
@@ -46,9 +48,35 @@ function EpisodeStoryboard() {
   });
   const invalidate = () => qc.invalidateQueries({ queryKey: ["episode", id] });
 
+  const setCoverFn = useServerFn(setEpisodeCover);
+  const exportFn = useServerFn(listEpisodeExport);
+
   const [newCaption, setNewCaption] = useState("");
   const [dragId, setDragId] = useState<string | null>(null);
   const [localOrder, setLocalOrder] = useState<string[] | null>(null);
+  const [view, setView] = useState<"timeline" | "grid">("timeline");
+  const [zipping, setZipping] = useState(false);
+
+  const coverMut = useMutation({
+    mutationFn: (rid: string | null) => setCoverFn({ data: { episode_id: id, result_id: rid } }),
+    onSuccess: () => { invalidate(); toast.success(t("episodes.cover_set_toast")); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  async function handleZip() {
+    setZipping(true);
+    try {
+      const res = await exportFn({ data: { episode_id: id } });
+      if (res.items.length === 0) { toast.error(t("episodes.zip_empty")); return; }
+      await downloadEpisodeZip(res.title, res.items);
+      toast.success(t("episodes.zip_done"));
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setZipping(false);
+    }
+  }
+
 
   const addMut = useMutation({
     mutationFn: () => addPanelFn({ data: { episode_id: id, caption: newCaption || undefined } }),
@@ -139,6 +167,27 @@ function EpisodeStoryboard() {
         </div>
       </div>
 
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="inline-flex rounded-xl border border-border bg-card p-1">
+          <Button
+            size="sm" variant={view === "timeline" ? "default" : "ghost"} className="rounded-lg"
+            onClick={() => setView("timeline")}
+          >
+            <List className="mr-1 h-4 w-4" /> {t("episodes.view_timeline")}
+          </Button>
+          <Button
+            size="sm" variant={view === "grid" ? "default" : "ghost"} className="rounded-lg"
+            onClick={() => setView("grid")}
+          >
+            <LayoutGrid className="mr-1 h-4 w-4" /> {t("episodes.view_grid")}
+          </Button>
+        </div>
+        <Button variant="outline" className="rounded-xl" onClick={handleZip} disabled={zipping}>
+          {zipping ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Download className="mr-1 h-4 w-4" />}
+          {t("episodes.download_zip")}
+        </Button>
+      </div>
+
       <form
         onSubmit={(e) => { e.preventDefault(); addMut.mutate(); }}
         className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4 shadow-toss"
@@ -155,6 +204,43 @@ function EpisodeStoryboard() {
         <div className="rounded-2xl border border-dashed border-border bg-card p-10 text-center text-sm text-muted-foreground">
           {t("episodes.empty")}
         </div>
+      ) : view === "grid" ? (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+          {panels.map((panel: any, idx: number) => {
+            const thumb = panel.chosen?.thumb_path ?? panel.chosen?.storage_path ?? null;
+            const isCover = panel.chosen_result_id && panel.chosen_result_id === (data.episode as any).cover_result_id;
+            return (
+              <div key={panel.id} className="overflow-hidden rounded-2xl border border-border bg-card shadow-toss">
+                <button
+                  onClick={() => openEditor(panel.id)}
+                  className="grid aspect-square w-full place-items-center bg-muted"
+                >
+                  {panel.status === "generating" ? (
+                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                  ) : thumb ? (
+                    <SignedImage bucket="generation-outputs" path={thumb} alt={`panel-${idx + 1}`}
+                      className="h-full w-full object-cover" />
+                  ) : (
+                    <ImageIcon className="h-6 w-6 text-muted-foreground" />
+                  )}
+                </button>
+                <div className="flex items-center justify-between gap-1 px-2 py-1.5">
+                  <span className="truncate text-xs font-semibold">
+                    {idx + 1}. {panel.caption || t("episodes.caption_placeholder")}
+                  </span>
+                  {panel.chosen_result_id && (
+                    <IconTooltip label={t("episodes.set_cover")}>
+                      <Button size="sm" variant="ghost" className="h-7 w-7 rounded-lg p-0"
+                        onClick={() => coverMut.mutate(isCover ? null : panel.chosen_result_id)}>
+                        <Star className={"h-4 w-4 " + (isCover ? "fill-primary text-primary" : "text-muted-foreground")} />
+                      </Button>
+                    </IconTooltip>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       ) : (
         <ol className="space-y-3">
           {panels.map((panel: any, idx: number) => (
@@ -162,11 +248,13 @@ function EpisodeStoryboard() {
               key={panel.id}
               index={idx}
               panel={panel}
+              isCover={!!panel.chosen_result_id && panel.chosen_result_id === (data.episode as any).cover_result_id}
               dragging={dragId === panel.id}
               onDragStart={() => onDragStart(panel.id)}
               onDragOver={(e) => onDragOver(e, panel.id)}
               onDrop={onDrop}
               onOpen={() => openEditor(panel.id)}
+              onSetCover={(next) => coverMut.mutate(next)}
               onDelete={() => { if (confirm(t("episodes.confirm_delete_panel"))) delMut.mutate(panel.id); }}
               onCaptionSave={(caption) =>
                 updatePanelFn({ data: { id: panel.id, caption } }).then(invalidate).catch((e: Error) => toast.error(e.message))
@@ -187,13 +275,14 @@ function EpisodeStoryboard() {
 /* ---------- Panel Card ---------- */
 
 function PanelCard({
-  index, panel, dragging,
+  index, panel, dragging, isCover,
   onDragStart, onDragOver, onDrop,
-  onOpen, onDelete, onCaptionSave, onChoose,
+  onOpen, onDelete, onCaptionSave, onChoose, onSetCover,
 }: {
   index: number;
   panel: any;
   dragging: boolean;
+  isCover: boolean;
   onDragStart: () => void;
   onDragOver: (e: React.DragEvent) => void;
   onDrop: () => void;
@@ -201,6 +290,7 @@ function PanelCard({
   onDelete: () => void;
   onCaptionSave: (caption: string) => void;
   onChoose: (resultId: string) => void;
+  onSetCover: (resultId: string | null) => void;
 }) {
   const { t } = useTranslation();
   const [caption, setCaption] = useState(panel.caption ?? "");
@@ -275,6 +365,14 @@ function PanelCard({
                 <ChevronDown className={"mr-1 h-4 w-4 transition " + (showResults ? "rotate-180" : "")} />
                 {t("episodes.variants")}
               </Button>
+            )}
+            {panel.chosen_result_id && (
+              <IconTooltip label={isCover ? t("episodes.cover_current") : t("episodes.set_cover")}>
+                <Button size="sm" variant="ghost" className="rounded-lg"
+                  onClick={() => onSetCover(isCover ? null : panel.chosen_result_id)}>
+                  <Star className={"h-4 w-4 " + (isCover ? "fill-primary text-primary" : "text-muted-foreground")} />
+                </Button>
+              </IconTooltip>
             )}
             <Button size="sm" variant="ghost" className="rounded-lg" onClick={onOpen}>
               <Wand2 className="mr-1 h-4 w-4" />

@@ -83,6 +83,7 @@ export type Database = {
       }
       episodes: {
         Row: {
+          cover_result_id: string | null
           created_at: string
           id: string
           order_index: number
@@ -90,6 +91,7 @@ export type Database = {
           title: string
         }
         Insert: {
+          cover_result_id?: string | null
           created_at?: string
           id?: string
           order_index?: number
@@ -97,6 +99,7 @@ export type Database = {
           title: string
         }
         Update: {
+          cover_result_id?: string | null
           created_at?: string
           id?: string
           order_index?: number
@@ -104,6 +107,13 @@ export type Database = {
           title?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "episodes_cover_result_id_fkey"
+            columns: ["cover_result_id"]
+            isOneToOne: false
+            referencedRelation: "generation_results"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "episodes_project_id_fkey"
             columns: ["project_id"]

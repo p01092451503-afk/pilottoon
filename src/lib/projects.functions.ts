@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { reconcilePanelStatuses } from "@/lib/projects.server";
 
 export const listProjects = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -79,7 +80,7 @@ export const getProject = createServerFn({ method: "GET" })
   .handler(async ({ data, context }) => {
     const [{ data: project, error: pErr }, { data: episodes, error: eErr }, { data: cast, error: cErr }] = await Promise.all([
       context.supabase.from("projects").select("id, title, created_at").eq("id", data.id).single(),
-      context.supabase.from("episodes").select("id, title, order_index, created_at").eq("project_id", data.id).order("order_index"),
+      context.supabase.from("episodes").select("id, title, order_index, created_at, cover_result_id").eq("project_id", data.id).order("order_index"),
       context.supabase.from("project_cast").select("character_id, role_label, characters(id, display_name)").eq("project_id", data.id),
     ]);
     if (pErr) throw new Error(pErr.message);
@@ -91,22 +92,40 @@ export const getProject = createServerFn({ method: "GET" })
     if (epList.length > 0) {
       const { data: p } = await context.supabase
         .from("panels")
-        .select("id, episode_id, status")
-        .in("episode_id", epList.map((e: any) => e.id));
+        .select("id, episode_id, status, order_index, chosen:generation_results!panels_chosen_result_id_fkey(thumb_path, storage_path)")
+        .in("episode_id", epList.map((e: any) => e.id))
+        .order("order_index");
       panels = p ?? [];
     }
+
+    // cover images explicitly chosen per episode
+    const coverIds = epList.map((e: any) => e.cover_result_id).filter(Boolean);
+    const coverMap = new Map<string, string>();
+    if (coverIds.length > 0) {
+      const { data: covers } = await context.supabase
+        .from("generation_results")
+        .select("id, thumb_path, storage_path")
+        .in("id", coverIds);
+      for (const c of covers ?? []) {
+        coverMap.set(c.id, (c.thumb_path ?? c.storage_path) as string);
+      }
+    }
+
     const episodesWithStats = epList.map((e: any) => {
       const mine = panels.filter((p) => p.episode_id === e.id);
+      const fallback = mine.map((p) => p.chosen?.thumb_path ?? p.chosen?.storage_path).find(Boolean) ?? null;
       return {
         ...e,
         panel_count: mine.length,
         done_count: mine.filter((p) => p.status === "done").length,
+        cover_path: (e.cover_result_id ? coverMap.get(e.cover_result_id) : null) ?? fallback,
       };
     });
 
     return { project, episodes: episodesWithStats, cast: cast ?? [] };
 
   });
+
 
 export const createEpisode = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -164,8 +183,10 @@ export const getEpisode = createServerFn({ method: "GET" })
   .inputValidator((d) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     const { data: episode, error: eErr } = await context.supabase
-      .from("episodes").select("id, title, order_index, project_id, projects(id, title)").eq("id", data.id).single();
+      .from("episodes").select("id, title, order_index, project_id, cover_result_id, projects(id, title)").eq("id", data.id).single();
     if (eErr) throw new Error(eErr.message);
+
+    await reconcilePanelStatuses(context.supabase, data.id);
 
     const [{ data: panels, error: pErr }, { data: cast, error: cErr }] = await Promise.all([
       context.supabase
@@ -366,4 +387,48 @@ export const exportResultToEpisode = createServerFn({ method: "POST" })
       .select("id, order_index").single();
     if (error) throw new Error(error.message);
     return row;
+  });
+
+export const setEpisodeCover = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z.object({
+      episode_id: z.string().uuid(),
+      result_id: z.string().uuid().nullable(),
+    }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase
+      .from("episodes")
+      .update({ cover_result_id: data.result_id })
+      .eq("id", data.episode_id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const listEpisodeExport = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ episode_id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { data: episode, error: eErr } = await context.supabase
+      .from("episodes").select("id, title").eq("id", data.episode_id).single();
+    if (eErr) throw new Error(eErr.message);
+
+    const { data: panels, error } = await context.supabase
+      .from("panels")
+      .select("id, order_index, caption, chosen:generation_results!panels_chosen_result_id_fkey(storage_path)")
+      .eq("episode_id", data.episode_id)
+      .order("order_index");
+    if (error) throw new Error(error.message);
+
+    return {
+      title: (episode as any).title as string,
+      items: (panels ?? [])
+        .filter((p: any) => p.chosen?.storage_path)
+        .map((p: any) => ({
+          order_index: p.order_index as number,
+          caption: (p.caption ?? null) as string | null,
+          storage_path: p.chosen.storage_path as string,
+        })),
+    };
   });
