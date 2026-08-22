@@ -19,8 +19,8 @@ import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedMakeRouteImport } from './routes/_authenticated/make'
 import { Route as AuthenticatedHistoryRouteImport } from './routes/_authenticated/history'
 import { Route as AuthenticatedGenerateRouteImport } from './routes/_authenticated/generate'
-import { Route as AuthenticatedCharactersRouteImport } from './routes/_authenticated/characters'
 import { Route as AuthenticatedProjectsIndexRouteImport } from './routes/_authenticated/projects.index'
+import { Route as AuthenticatedCharactersIndexRouteImport } from './routes/_authenticated/characters.index'
 import { Route as AuthenticatedProjectsIdRouteImport } from './routes/_authenticated/projects.$id'
 import { Route as AuthenticatedEpisodesIdRouteImport } from './routes/_authenticated/episodes.$id'
 
@@ -73,15 +73,16 @@ const AuthenticatedGenerateRoute = AuthenticatedGenerateRouteImport.update({
   path: '/generate',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedCharactersRoute = AuthenticatedCharactersRouteImport.update({
-  id: '/characters',
-  path: '/characters',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
 const AuthenticatedProjectsIndexRoute =
   AuthenticatedProjectsIndexRouteImport.update({
     id: '/projects/',
     path: '/projects/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedCharactersIndexRoute =
+  AuthenticatedCharactersIndexRouteImport.update({
+    id: '/characters/',
+    path: '/characters/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedProjectsIdRoute = AuthenticatedProjectsIdRouteImport.update({
@@ -98,7 +99,6 @@ const AuthenticatedEpisodesIdRoute = AuthenticatedEpisodesIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
-  '/characters': typeof AuthenticatedCharactersRoute
   '/generate': typeof AuthenticatedGenerateRoute
   '/history': typeof AuthenticatedHistoryRoute
   '/make': typeof AuthenticatedMakeRoute
@@ -108,12 +108,12 @@ export interface FileRoutesByFullPath {
   '/video': typeof AuthenticatedVideoRoute
   '/episodes/$id': typeof AuthenticatedEpisodesIdRoute
   '/projects/$id': typeof AuthenticatedProjectsIdRoute
+  '/characters/': typeof AuthenticatedCharactersIndexRoute
   '/projects/': typeof AuthenticatedProjectsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
-  '/characters': typeof AuthenticatedCharactersRoute
   '/generate': typeof AuthenticatedGenerateRoute
   '/history': typeof AuthenticatedHistoryRoute
   '/make': typeof AuthenticatedMakeRoute
@@ -123,6 +123,7 @@ export interface FileRoutesByTo {
   '/video': typeof AuthenticatedVideoRoute
   '/episodes/$id': typeof AuthenticatedEpisodesIdRoute
   '/projects/$id': typeof AuthenticatedProjectsIdRoute
+  '/characters': typeof AuthenticatedCharactersIndexRoute
   '/projects': typeof AuthenticatedProjectsIndexRoute
 }
 export interface FileRoutesById {
@@ -130,7 +131,6 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
-  '/_authenticated/characters': typeof AuthenticatedCharactersRoute
   '/_authenticated/generate': typeof AuthenticatedGenerateRoute
   '/_authenticated/history': typeof AuthenticatedHistoryRoute
   '/_authenticated/make': typeof AuthenticatedMakeRoute
@@ -140,6 +140,7 @@ export interface FileRoutesById {
   '/_authenticated/video': typeof AuthenticatedVideoRoute
   '/_authenticated/episodes/$id': typeof AuthenticatedEpisodesIdRoute
   '/_authenticated/projects/$id': typeof AuthenticatedProjectsIdRoute
+  '/_authenticated/characters/': typeof AuthenticatedCharactersIndexRoute
   '/_authenticated/projects/': typeof AuthenticatedProjectsIndexRoute
 }
 export interface FileRouteTypes {
@@ -147,7 +148,6 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
-    | '/characters'
     | '/generate'
     | '/history'
     | '/make'
@@ -157,12 +157,12 @@ export interface FileRouteTypes {
     | '/video'
     | '/episodes/$id'
     | '/projects/$id'
+    | '/characters/'
     | '/projects/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/auth'
-    | '/characters'
     | '/generate'
     | '/history'
     | '/make'
@@ -172,13 +172,13 @@ export interface FileRouteTypes {
     | '/video'
     | '/episodes/$id'
     | '/projects/$id'
+    | '/characters'
     | '/projects'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
     | '/auth'
-    | '/_authenticated/characters'
     | '/_authenticated/generate'
     | '/_authenticated/history'
     | '/_authenticated/make'
@@ -188,6 +188,7 @@ export interface FileRouteTypes {
     | '/_authenticated/video'
     | '/_authenticated/episodes/$id'
     | '/_authenticated/projects/$id'
+    | '/_authenticated/characters/'
     | '/_authenticated/projects/'
   fileRoutesById: FileRoutesById
 }
@@ -269,18 +270,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedGenerateRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/characters': {
-      id: '/_authenticated/characters'
-      path: '/characters'
-      fullPath: '/characters'
-      preLoaderRoute: typeof AuthenticatedCharactersRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
     '/_authenticated/projects/': {
       id: '/_authenticated/projects/'
       path: '/projects'
       fullPath: '/projects/'
       preLoaderRoute: typeof AuthenticatedProjectsIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/characters/': {
+      id: '/_authenticated/characters/'
+      path: '/characters'
+      fullPath: '/characters/'
+      preLoaderRoute: typeof AuthenticatedCharactersIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/projects/$id': {
@@ -301,7 +302,6 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedRouteRouteChildren {
-  AuthenticatedCharactersRoute: typeof AuthenticatedCharactersRoute
   AuthenticatedGenerateRoute: typeof AuthenticatedGenerateRoute
   AuthenticatedHistoryRoute: typeof AuthenticatedHistoryRoute
   AuthenticatedMakeRoute: typeof AuthenticatedMakeRoute
@@ -311,11 +311,11 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedVideoRoute: typeof AuthenticatedVideoRoute
   AuthenticatedEpisodesIdRoute: typeof AuthenticatedEpisodesIdRoute
   AuthenticatedProjectsIdRoute: typeof AuthenticatedProjectsIdRoute
+  AuthenticatedCharactersIndexRoute: typeof AuthenticatedCharactersIndexRoute
   AuthenticatedProjectsIndexRoute: typeof AuthenticatedProjectsIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
-  AuthenticatedCharactersRoute: AuthenticatedCharactersRoute,
   AuthenticatedGenerateRoute: AuthenticatedGenerateRoute,
   AuthenticatedHistoryRoute: AuthenticatedHistoryRoute,
   AuthenticatedMakeRoute: AuthenticatedMakeRoute,
@@ -325,6 +325,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedVideoRoute: AuthenticatedVideoRoute,
   AuthenticatedEpisodesIdRoute: AuthenticatedEpisodesIdRoute,
   AuthenticatedProjectsIdRoute: AuthenticatedProjectsIdRoute,
+  AuthenticatedCharactersIndexRoute: AuthenticatedCharactersIndexRoute,
   AuthenticatedProjectsIndexRoute: AuthenticatedProjectsIndexRoute,
 }
 
