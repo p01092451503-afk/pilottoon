@@ -216,12 +216,9 @@ function findPreset(cfg: PromptConfig, sheet: string, re: RegExp): string | null
 
 /** 선택한 구도에 맞춰 거리/위치/포커스를 자동 계산 */
 function autoCameraPatch(cfg: PromptConfig, angleId: string): Partial<TabState> {
-  if (angleId === NONE) return {};
-  const angle = (cfg["CameraAngle"] ?? []).find((i) => i.id === angleId);
-  if (!angle) return {};
-  const text = `${angle.label_en ?? ""} ${angle.label_ko ?? ""} ${angle.prompt_text ?? ""}`;
-  const rule = CAM_RULES.find((r) => r.angle.test(text));
+  const rule = cameraRuleFor(cfg, angleId);
   if (!rule) return {};
+
   const patch: Partial<TabState> = {};
   if (rule.distance) {
     const id = findPreset(cfg, "CameraDistance", rule.distance);
