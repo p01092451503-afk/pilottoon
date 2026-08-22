@@ -1024,34 +1024,44 @@ function PresetField({
   cfg,
   value,
   onChange,
+  disabled,
+  isItemDisabled,
+  hint,
 }: {
   label: string;
   sheet: string;
   cfg: PromptConfig;
   value: string;
   onChange: (v: string) => void;
+  disabled?: boolean;
+  isItemDisabled?: (item: PromptConfig[string][number]) => boolean;
+  hint?: string;
 }) {
   const { t, i18n } = useTranslation();
   const items = cfg[sheet] ?? [];
   return (
     <div>
       <Label className="text-xs text-muted-foreground">{label}</Label>
-      <Select value={value} onValueChange={onChange}>
+      <Select value={value} onValueChange={onChange} disabled={disabled}>
         <SelectTrigger className="mt-1 h-10 rounded-xl bg-muted/50">
           <SelectValue placeholder={t("make.not_selected")} />
         </SelectTrigger>
         <SelectContent>
           <SelectItem value={NONE}>{t("make.not_selected")}</SelectItem>
           {items.map((it) => (
-            <SelectItem key={it.id} value={it.id}>
+            <SelectItem key={it.id} value={it.id} disabled={isItemDisabled?.(it)}>
               {i18n.language.startsWith("ko") ? it.label_ko : it.label_en || it.label_ko}
             </SelectItem>
           ))}
         </SelectContent>
       </Select>
+      {disabled && hint ? (
+        <p className="mt-1 text-[11px] text-muted-foreground">{hint}</p>
+      ) : null}
     </div>
   );
 }
+
 
 function RefSelect({
   label,
