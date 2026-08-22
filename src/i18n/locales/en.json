@@ -51,7 +51,8 @@
     "group_assets": "Assets",
     "group_studio": "Studios",
     "group_records": "Records",
-    "usage": "API usage"
+    "usage": "API usage",
+    "make": "Make"
   },
   "header": {
     "projects": {
@@ -479,5 +480,61 @@
   "download": {
     "button": "Download",
     "format": "Format"
+  },
+  "make": {
+    "work_tab": "Work {{n}}",
+    "add_tab": "Add work tab",
+    "refs": "Reference images",
+    "upload_from_pc": "Upload from computer",
+    "drop_hint": "Drag & drop or paste",
+    "ref_limit": "You can attach up to {{max}} reference images.",
+    "pick_area": "Select reference areas",
+    "area_title": "Reference areas",
+    "area_desc": "Choose which parts of each reference image the new image should follow (multiple allowed).",
+    "emotion": "Emotion",
+    "style": "Style",
+    "bg_style": "Background style",
+    "camera": "Camera",
+    "character_a": "Character A",
+    "character_b": "Character B",
+    "composition": "Composition",
+    "distance": "Distance",
+    "position": "Position",
+    "focus": "Focus",
+    "strength": "Pose / background strength",
+    "pose_strength": "Pose strength",
+    "bg_strength": "Background strength",
+    "ratio_count": "Ratio / count",
+    "ratio": "Aspect ratio",
+    "count": "Image count",
+    "not_selected": "Not selected",
+    "prompt": "Prompt",
+    "prompt_placeholder": "Describe the scene. You can combine reference images, e.g. the character in @image1 smiling in the background of @image2.",
+    "memo": "Memo",
+    "memo_placeholder": "Private note for this work (not sent to the model).",
+    "generate": "Create image",
+    "generating": "Generating image…",
+    "generating_hint": "Generating {{n}} image(s).",
+    "done_toast": "Image generation finished.",
+    "output": "Output",
+    "output_empty": "No images generated yet.",
+    "view": "Open viewer",
+    "retry": "Retry",
+    "error_generic": "Generation failed due to a temporary system error.",
+    "line": "Line",
+    "history": "History",
+    "empty": "No images.",
+    "zoom_in": "Zoom in",
+    "zoom_out": "Zoom out",
+    "area": {
+      "character": "Character",
+      "background": "Background",
+      "costume": "Costume",
+      "pose": "Pose",
+      "composition": "Composition",
+      "style": "Style",
+      "prop": "Props",
+      "etc": "Other"
+    }
   }
 }
