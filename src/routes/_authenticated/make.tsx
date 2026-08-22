@@ -1215,6 +1215,9 @@ function SideList({
   locale,
   onUseAsRef,
   onDeleted,
+  onCardUseAsRef,
+  onEditImage,
+  onClearLine,
 }: {
   lineRows: HistoryRow[];
   allRows: HistoryRow[];
