@@ -28,7 +28,13 @@ import { ImageLightbox, type LightboxItem } from "@/components/image-lightbox";
 import { AutoResizeTextarea } from "@/components/auto-resize-textarea";
 import { ImageModelHealthCard } from "@/components/image-model-health-card";
 import { generateErrorKey } from "@/lib/generate-error";
-import type { PromptConfig } from "@/lib/promptEngine";
+import {
+  buildFigureMap,
+  buildPrompt,
+  WARN,
+  type PromptConfig,
+  type WorkInput,
+} from "@/lib/promptEngine";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -404,44 +410,63 @@ function Workspace({
     return () => window.removeEventListener("paste", onPaste);
   }, [uploadFiles]);
 
-  const pick = (sheet: string, id: string) =>
-    id === NONE ? null : (cfg[sheet] ?? []).find((i) => i.id === id) ?? null;
 
-  const composed = useMemo(() => {
-    const lines: string[] = [];
-    const body = tab.prompt.replace(/@image(\d+)/gi, (_m, n) => `reference image ${n}`);
-    if (body.trim()) lines.push(body.trim());
+  // ── 정식 프롬프트 엔진 (Figure 순서: Character A → Character B → Background → Pose) ──
+  const engine = useMemo(() => {
+    const idOf = (v: string) => (v === NONE ? "" : v);
+    const charAIdx = tab.charA ? tab.refs.findIndex((r) => r.id === tab.charA) : -1;
+    const charBIdx = tab.charB ? tab.refs.findIndex((r) => r.id === tab.charB) : -1;
+    const extraRefs = tab.refs.filter((r) => r.id !== tab.charA && r.id !== tab.charB).length;
 
+    // 캐릭터로 지정되지 않은 레퍼런스를 배경 → 포즈 순으로 배정
+    const hasBg = idOf(tab.bgStrengthId) !== "" && extraRefs >= 1;
+    const hasPose = idOf(tab.poseStrengthId) !== "" && extraRefs >= (hasBg ? 2 : 1);
+
+    const figureMap = buildFigureMap({
+      hasCharA: charAIdx >= 0,
+      hasCharB: charBIdx >= 0,
+      hasBg,
+      hasPose,
+      hasStyle: false,
+      charAName: charAIdx >= 0 ? tab.refs[charAIdx]!.name : "",
+      charBName: charBIdx >= 0 ? tab.refs[charBIdx]!.name : "",
+    });
+
+    // 사용자 입력 본문 + 영역 지정 문구를 action 텍스트로 전달
+    const actionLines: string[] = [];
+    const body = tab.prompt.replace(/@image(\d+)/gi, (_m, n) => `reference image ${n}`).trim();
+    if (body) actionLines.push(body);
     tab.refs.forEach((r, idx) => {
       if (r.areas.length) {
-        lines.push(
+        actionLines.push(
           `Use reference image ${idx + 1} for its ${r.areas
             .map((a) => AREA_EN[a] ?? a)
             .join(", ")}.`,
         );
       }
     });
-    const ai = tab.charA ? tab.refs.findIndex((r) => r.id === tab.charA) : -1;
-    const bi = tab.charB ? tab.refs.findIndex((r) => r.id === tab.charB) : -1;
-    if (ai >= 0) lines.push(`Character A is the character in reference image ${ai + 1}.`);
-    if (bi >= 0) lines.push(`Character B is the character in reference image ${bi + 1}.`);
 
-    for (const [sheet, id] of [
-      ["Emotion", tab.emotionId],
-      ["CameraAngle", tab.cameraAngleId],
-      ["CameraDistance", tab.cameraDistanceId],
-      ["CameraPosition", tab.cameraPositionId],
-      ["FocusTarget", tab.focusTargetId],
-      ["BgStyle", tab.bgStyleId],
-      ["StyleFinish", tab.styleFinishId],
-      ["PoseStrength", tab.poseStrengthId],
-      ["BgStrength", tab.bgStrengthId],
-    ] as const) {
-      const item = pick(sheet, id);
-      if (item?.prompt_text) lines.push(item.prompt_text);
-    }
-    return lines.join("\n");
+    const work: WorkInput = {
+      poseStrengthId: idOf(tab.poseStrengthId),
+      bgStrengthId: idOf(tab.bgStrengthId),
+      bodySourceId: "",
+      cameraAngleId: idOf(tab.cameraAngleId),
+      cameraDistanceId: idOf(tab.cameraDistanceId),
+      cameraPositionId: idOf(tab.cameraPositionId),
+      focusTargetId: idOf(tab.focusTargetId),
+      bgStyleId: idOf(tab.bgStyleId),
+      costumeModeId: "",
+      emotionId: idOf(tab.emotionId),
+      styleFinishId: idOf(tab.styleFinishId),
+      actionText: actionLines.join("\n"),
+      directionMemo: tab.memo ?? "",
+      isPhotopose: false,
+    };
+
+    const built = buildPrompt(work, figureMap, cfg);
+    return { ...built, figureMap };
   }, [tab, cfg]);
+
 
   const over = tab.prompt.length > PROMPT_MAX;
   const canGenerate = !!tab.prompt.trim() && !over && !gen.running;
@@ -453,21 +478,26 @@ function Workspace({
       role: r.id === tab.charA ? "charA" : r.id === tab.charB ? "charB" : `ref${i + 1}`,
       path: r.path,
     }));
+    // 프롬프트 엔진 경고 노출 (WRN_002 / WRN_004 / WRN_005)
+    for (const w of engine.warnings) {
+      const text = WARN[w as keyof typeof WARN];
+      if (text) toast.warning(text);
+    }
     try {
       const res = await gen.run({
         workLabel: "W1",
         mode: "new",
         aspectRatio: tab.aspectRatio,
-        finalPrompt: composed,
+        finalPrompt: engine.prompt,
         rawPrompt: tab.prompt,
         promptEdited: false,
-        rawPassthrough: true,
+        rawPassthrough: false,
         imagePaths,
         referenceRoles,
-        figureMap: [],
+        figureMap: engine.figureMap,
         options: { aspectRatio: tab.aspectRatio, source: "make" },
         batchCount: tab.count,
-        conflictWarnings: [],
+        conflictWarnings: engine.warnings,
         userMemo: tab.memo || undefined,
       });
       if (res?.generationId) setLineItems((p) => [res.generationId, ...p]);
