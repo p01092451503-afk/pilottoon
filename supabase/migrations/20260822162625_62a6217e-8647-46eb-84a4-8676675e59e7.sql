@@ -1,0 +1,1 @@
+ALTER TABLE public.episodes ADD COLUMN IF NOT EXISTS cover_result_id uuid REFERENCES public.generation_results(id) ON DELETE SET NULL;
