@@ -677,7 +677,9 @@ function Workspace({
           locale={i18n.language}
           onUseAsRef={useResultsAsRefs}
           onDeleted={() => void history.refetch()}
-
+          onCardUseAsRef={useFirstResultAsRef}
+          onEditImage={restoreGeneration}
+          onClearLine={() => setLineItems([])}
         />
       </aside>
 
