@@ -106,15 +106,83 @@ const AREA_EN: Record<string, string> = {
   etc: "other details",
 };
 
-/* 슬라이드 48 — 구도(앵글) 선택 시 거리/위치/포커스 자동 설정 규칙 */
-type CamRule = { angle: RegExp; distance?: RegExp; position?: RegExp; focus?: RegExp };
+/* 슬라이드 48 — 구도(앵글) 선택 시 거리/위치/포커스 자동 설정 규칙 (기획안 8개 프리셋) */
+type CamRule = {
+  angle: RegExp;
+  distance?: RegExp;
+  position?: RegExp;
+  focus?: RegExp;
+  /** 캐릭터 A/B 두 명이 모두 지정되어야 사용 가능한 프리셋 (오버숄더) */
+  requiresTwo?: boolean;
+};
 const CAM_RULES: CamRule[] = [
+  // 1) 아이레벨 전신
+  {
+    angle: /eye[- ]?level.*(full|body)|아이\s?레벨|눈높이/i,
+    distance: /full|전신|long|롱|wide|와이드/i,
+    position: /center|중앙|가운데/i,
+    focus: /full|전신|body|몸/i,
+  },
+  // 2) 초근접 (extreme close-up) — 클로즈업보다 먼저 매칭
+  {
+    angle: /extreme close[- ]?up|초근접|익스트림/i,
+    distance: /extreme|초근접|close[- ]?up|클로즈업|근접/i,
+    position: /center|중앙|가운데/i,
+    focus: /eye|눈|face|얼굴/i,
+  },
+  // 3) 클로즈업
   {
     angle: /close[- ]?up|클로즈업|얼굴/i,
     distance: /close[- ]?up|클로즈업|근접/i,
     position: /center|중앙|가운데/i,
     focus: /face|얼굴/i,
   },
+  // 4) 로우앵글(앙각)
+  {
+    angle: /low[- ]?angle|앙각|로우\s?앵글|worm/i,
+    distance: /full|전신|long|롱|medium|미디엄|중간/i,
+    position: /center|중앙|가운데/i,
+    focus: /full|전신|body|몸/i,
+  },
+  // 5) 버드아이 — 하이앵글보다 먼저 매칭
+  {
+    angle: /bird|버드\s?아이|top[- ]?down|탑\s?다운|조감/i,
+    distance: /full|전신|long|롱|wide|와이드/i,
+    position: /center|중앙|가운데/i,
+    focus: /full|전신|body|몸/i,
+  },
+  // 6) 하이앵글(부감)
+  {
+    angle: /high[- ]?angle|부감|하이\s?앵글/i,
+    distance: /medium|미디엄|중간/i,
+    position: /center|중앙|가운데/i,
+    focus: /full|전신|body|몸/i,
+  },
+  // 7) 오버숄더 A→B
+  {
+    angle: /over[- ]?the[- ]?shoulder.*(a\s*(→|->|to)\s*b)|오버숄더\s*a\s*(→|->)\s*b/i,
+    distance: /medium|미디엄|중간/i,
+    position: /side|측면|off[- ]?center|왼쪽|left/i,
+    focus: /face|얼굴/i,
+    requiresTwo: true,
+  },
+  // 8) 오버숄더 B→A
+  {
+    angle: /over[- ]?the[- ]?shoulder.*(b\s*(→|->|to)\s*a)|오버숄더\s*b\s*(→|->)\s*a/i,
+    distance: /medium|미디엄|중간/i,
+    position: /side|측면|off[- ]?center|오른쪽|right/i,
+    focus: /face|얼굴/i,
+    requiresTwo: true,
+  },
+  // 그 외 오버숄더 일반
+  {
+    angle: /over[- ]?the[- ]?shoulder|오버숄더|숄더/i,
+    distance: /medium|미디엄|중간/i,
+    position: /side|측면|off[- ]?center|왼쪽|오른쪽/i,
+    focus: /face|얼굴/i,
+    requiresTwo: true,
+  },
+  // 그 외 전신/버스트 (기존 호환)
   {
     angle: /bust|상반신|waist|허리/i,
     distance: /medium|미디엄|중간|bust|상반신/i,
@@ -127,19 +195,17 @@ const CAM_RULES: CamRule[] = [
     position: /center|중앙|가운데/i,
     focus: /full|전신|body|몸/i,
   },
-  {
-    angle: /over[- ]?the[- ]?shoulder|오버숄더|숄더/i,
-    distance: /medium|미디엄|중간/i,
-    position: /side|측면|off[- ]?center|왼쪽|오른쪽/i,
-    focus: /face|얼굴/i,
-  },
-  {
-    angle: /low angle|앙각|로우앵글|high angle|부감|하이앵글|bird|top/i,
-    distance: /medium|미디엄|중간/i,
-    position: /center|중앙|가운데/i,
-    focus: /full|전신|body|몸/i,
-  },
 ];
+
+/** 해당 앵글 프리셋이 캐릭터 2명(A·B)을 요구하는지 */
+function cameraRuleFor(cfg: PromptConfig, angleId: string): CamRule | null {
+  if (!angleId || angleId === NONE) return null;
+  const angle = (cfg["CameraAngle"] ?? []).find((i) => i.id === angleId);
+  if (!angle) return null;
+  const text = `${angle.label_en ?? ""} ${angle.label_ko ?? ""} ${angle.prompt_text ?? ""}`;
+  return CAM_RULES.find((r) => r.angle.test(text)) ?? null;
+}
+
 
 function findPreset(cfg: PromptConfig, sheet: string, re: RegExp): string | null {
   const item = (cfg[sheet] ?? []).find((i) =>
@@ -150,12 +216,9 @@ function findPreset(cfg: PromptConfig, sheet: string, re: RegExp): string | null
 
 /** 선택한 구도에 맞춰 거리/위치/포커스를 자동 계산 */
 function autoCameraPatch(cfg: PromptConfig, angleId: string): Partial<TabState> {
-  if (angleId === NONE) return {};
-  const angle = (cfg["CameraAngle"] ?? []).find((i) => i.id === angleId);
-  if (!angle) return {};
-  const text = `${angle.label_en ?? ""} ${angle.label_ko ?? ""} ${angle.prompt_text ?? ""}`;
-  const rule = CAM_RULES.find((r) => r.angle.test(text));
+  const rule = cameraRuleFor(cfg, angleId);
   if (!rule) return {};
+
   const patch: Partial<TabState> = {};
   if (rule.distance) {
     const id = findPreset(cfg, "CameraDistance", rule.distance);
@@ -660,15 +723,31 @@ function Workspace({
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
               <RefSelect
                 label={t("make.character_a")} refs={tab.refs}
-                value={tab.charA} onChange={(v) => onChange({ charA: v })}
+                value={tab.charA}
+                onChange={(v) => {
+                  const rule = cameraRuleFor(cfg, tab.cameraAngleId);
+                  const invalid = rule?.requiresTwo && !(v && tab.charB);
+                  onChange({ charA: v, ...(invalid ? { cameraAngleId: NONE } : {}) });
+                }}
               />
               <RefSelect
                 label={t("make.character_b")} refs={tab.refs}
-                value={tab.charB} onChange={(v) => onChange({ charB: v })}
+                value={tab.charB}
+                onChange={(v) => {
+                  const rule = cameraRuleFor(cfg, tab.cameraAngleId);
+                  const invalid = rule?.requiresTwo && !(v && tab.charA);
+                  onChange({ charB: v, ...(invalid ? { cameraAngleId: NONE } : {}) });
+                }}
               />
+
               <PresetField
                 label={t("make.composition")} sheet="CameraAngle" cfg={cfg}
                 value={tab.cameraAngleId}
+                isItemDisabled={(it) => {
+                  const text = `${it.label_en ?? ""} ${it.label_ko ?? ""} ${it.prompt_text ?? ""}`;
+                  const rule = CAM_RULES.find((r) => r.angle.test(text));
+                  return Boolean(rule?.requiresTwo) && !(tab.charA && tab.charB);
+                }}
                 onChange={(v) => {
                   const auto = autoCameraPatch(cfg, v);
                   onChange({ cameraAngleId: v, ...auto });
@@ -678,16 +757,22 @@ function Workspace({
 
               <PresetField
                 label={t("make.distance")} sheet="CameraDistance" cfg={cfg}
-                value={tab.cameraDistanceId} onChange={(v) => onChange({ cameraDistanceId: v })}
+                value={tab.cameraDistanceId}
+                onChange={(v) => onChange({ cameraDistanceId: v, cameraAngleId: NONE })}
               />
               <PresetField
                 label={t("make.position")} sheet="CameraPosition" cfg={cfg}
-                value={tab.cameraPositionId} onChange={(v) => onChange({ cameraPositionId: v })}
+                value={tab.cameraPositionId}
+                disabled={!tab.charA && !tab.charB}
+                hint={t("make.position_requires_character")}
+                onChange={(v) => onChange({ cameraPositionId: v, cameraAngleId: NONE })}
               />
               <PresetField
                 label={t("make.focus")} sheet="FocusTarget" cfg={cfg}
-                value={tab.focusTargetId} onChange={(v) => onChange({ focusTargetId: v })}
+                value={tab.focusTargetId}
+                onChange={(v) => onChange({ focusTargetId: v, cameraAngleId: NONE })}
               />
+
             </div>
           </div>
 
@@ -961,34 +1046,44 @@ function PresetField({
   cfg,
   value,
   onChange,
+  disabled,
+  isItemDisabled,
+  hint,
 }: {
   label: string;
   sheet: string;
   cfg: PromptConfig;
   value: string;
   onChange: (v: string) => void;
+  disabled?: boolean;
+  isItemDisabled?: (item: PromptConfig[string][number]) => boolean;
+  hint?: string;
 }) {
   const { t, i18n } = useTranslation();
   const items = cfg[sheet] ?? [];
   return (
     <div>
       <Label className="text-xs text-muted-foreground">{label}</Label>
-      <Select value={value} onValueChange={onChange}>
+      <Select value={value} onValueChange={onChange} disabled={disabled}>
         <SelectTrigger className="mt-1 h-10 rounded-xl bg-muted/50">
           <SelectValue placeholder={t("make.not_selected")} />
         </SelectTrigger>
         <SelectContent>
           <SelectItem value={NONE}>{t("make.not_selected")}</SelectItem>
           {items.map((it) => (
-            <SelectItem key={it.id} value={it.id}>
+            <SelectItem key={it.id} value={it.id} disabled={isItemDisabled?.(it)}>
               {i18n.language.startsWith("ko") ? it.label_ko : it.label_en || it.label_ko}
             </SelectItem>
           ))}
         </SelectContent>
       </Select>
+      {disabled && hint ? (
+        <p className="mt-1 text-[11px] text-muted-foreground">{hint}</p>
+      ) : null}
     </div>
   );
 }
+
 
 function RefSelect({
   label,
