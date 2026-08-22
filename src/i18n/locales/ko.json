@@ -541,6 +541,10 @@
     "generating": "이미지 생성 중…",
     "generating_hint": "이미지 {{n}}장을 생성하고 있어요.",
     "done_toast": "이미지 생성이 완료되었습니다.",
+    "panel_saved_toast": "생성 결과가 스토리보드 컷에 저장되었습니다.",
+    "panel_linked": "{{episode}} · 컷 {{n}} 에 연결됨",
+    "back_to_storyboard": "스토리보드로 돌아가기",
+
     "output": "출력",
     "output_empty": "아직 생성된 이미지가 없습니다.",
     "view": "뷰어 보기",
