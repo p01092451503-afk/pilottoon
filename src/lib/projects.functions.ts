@@ -10,8 +10,44 @@ export const listProjects = createServerFn({ method: "GET" })
       .select("id, title, created_at")
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
-    return data ?? [];
+    const projects = data ?? [];
+    if (projects.length === 0) return [];
+
+    const ids = projects.map((p: any) => p.id);
+    const { data: episodes } = await context.supabase
+      .from("episodes")
+      .select("id, project_id, order_index")
+      .in("project_id", ids);
+    const epList = episodes ?? [];
+
+    const epIds = epList.map((e: any) => e.id);
+    let panels: any[] = [];
+    if (epIds.length > 0) {
+      const { data: p } = await context.supabase
+        .from("panels")
+        .select("id, episode_id, order_index, status, chosen:generation_results!panels_chosen_result_id_fkey(thumb_path, storage_path)")
+        .in("episode_id", epIds)
+        .order("order_index");
+      panels = p ?? [];
+    }
+
+    const epToProject = new Map(epList.map((e: any) => [e.id, e.project_id]));
+
+    return projects.map((proj: any) => {
+      const myPanels = panels.filter((p) => epToProject.get(p.episode_id) === proj.id);
+      const done = myPanels.filter((p) => p.status === "done").length;
+      const cover =
+        myPanels.map((p) => p.chosen?.thumb_path ?? p.chosen?.storage_path).find(Boolean) ?? null;
+      return {
+        ...proj,
+        episode_count: epList.filter((e: any) => e.project_id === proj.id).length,
+        panel_count: myPanels.length,
+        done_count: done,
+        cover_path: cover as string | null,
+      };
+    });
   });
+
 
 export const createProject = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
