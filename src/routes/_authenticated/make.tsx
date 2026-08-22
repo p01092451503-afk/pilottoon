@@ -694,7 +694,11 @@ function Workspace({
               </span>
             </div>
 
-            <Label className="mt-3 block text-xs text-muted-foreground">{t("make.memo")}</Label>
+            <div className="mt-3 flex items-center gap-2">
+              <Label className="block text-xs text-muted-foreground">{t("make.memo")}</Label>
+              <InfoTip text={t("make.memo_tip")} />
+            </div>
+
             <AutoResizeTextarea
               minHeight={64}
               maxHeight={240}
